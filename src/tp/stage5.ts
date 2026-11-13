@@ -35,7 +35,13 @@ export const STAGE5: Tp[] = [
     intention: 'Vérifier les notions des étapes 0 à 4 sur douze questions.', skills: ['B2.2', 'B2.3'],
     bilan: 'Les erreurs repérées ici disent quels TP reprendre.',
     brief: 'Douze questions à choix. Chaque explication est affichée après la réponse (sauf en mode examen).',
-    files: { 'bilan/.keep': '' }, objectives: [], questions: QUIZ, hints: ['Reprenez le TP concerné dans la liste.'],
+    files: { 'bilan/.keep': '' }, objectives: [], steps: [
+      { title: 'Questions 1 à 4', learn: 'Ce quiz reprend les notions des étapes 0 à 4. Chaque réponse est expliquée juste après (sauf en mode examen). Si une question te met en difficulté, note le TP concerné : tu pourras le refaire.', ask: ['q1', 'q2', 'q3', 'q4'], until: { done: 'q:q4' } },
+      { title: 'Questions 5 à 8', learn: 'On continue.', ask: ['q5', 'q6', 'q7', 'q8'], until: { done: 'q:q8' } },
+      { title: 'Questions 9 à 12', learn: 'Dernière série.', ask: ['q9', 'q10', 'q11', 'q12'], until: { done: 'q:q12' } },
+      { title: 'Bilan', learn: 'Les erreurs repérées ici disent quels TP reprendre. Tu peux aussi exporter ton compte rendu (bouton « Compte rendu » en haut) pour en parler avec ton enseignant.' },
+    ],
+    questions: QUIZ, hints: ['Reprenez le TP concerné dans la liste.'],
     solution: QUIZ.map(x => ({ answer: x.id })),
   },
   {
@@ -44,7 +50,11 @@ export const STAGE5: Tp[] = [
     myth: 'Terraform et Ansible font la même chose.',
     bilan: 'Terraform crée et décrit ce qui existe chez le fournisseur ; Ansible décrit ce qu’il y a dans les machines ; les deux s’enchaînent.',
     brief: 'Pour chaque besoin, choisissez : Terraform, Ansible, ou les deux à la suite.',
-    files: { 'bilan/.keep': '' }, objectives: [], questions: MAP, hints: ['Demandez-vous : « est-ce une ressource du fournisseur, ou un contenu dans la machine ? »'],
+    files: { 'bilan/.keep': '' }, objectives: [], steps: [
+      { title: 'Terraform ou Ansible ?', learn: 'Pour chaque besoin, choisis l’outil qui convient : Terraform, Ansible, ou les deux à la suite.\n\nLa bonne question à se poser : « est-ce une ressource qui existe chez le fournisseur (réseau, machine, pare-feu), ou un contenu à l’intérieur d’une machine (logiciel, fichier, service) ? »', ask: ['o1', 'o2', 'o3', 'o4', 'o5', 'o6', 'o7', 'o8'], until: { done: 'q:o8' } },
+      { title: 'Bilan', learn: 'Terraform crée et décrit ce qui existe chez le fournisseur ; Ansible décrit ce qu’il y a dans les machines ; les deux s’enchaînent.' },
+    ],
+    questions: MAP, hints: ['Demandez-vous : « est-ce une ressource du fournisseur, ou un contenu dans la machine ? »'],
     solution: MAP.map(x => ({ answer: x.id })),
   },
   {
@@ -64,6 +74,10 @@ export const STAGE5: Tp[] = [
       { id: 's8', text: 'J’enchaîne Terraform puis Ansible' },
       { id: 's9', text: 'Je garde l’état et les secrets hors du dépôt' },
       { id: 's10', text: 'Je choisis l’outil adapté à un besoin' },
+    ],
+steps: [
+      { title: 'Où en es-tu ?', learn: 'Pour chaque énoncé ci-dessous, choisis ton niveau, honnêtement : non maîtrisé, maîtrise partielle, bonne maîtrise ou excellente maîtrise (survole un niveau pour voir ce qu’il veut dire). Ce n’est pas une note : cette auto-évaluation prépare l’examen, elle ne le remplace pas.', until: { done: 'self' } },
+      { title: 'Bilan', learn: 'Ton auto-évaluation figure dans le compte rendu : elle sert de point de départ à la discussion avec ton enseignant, pour choisir quels TP reprendre.' },
     ],
     hints: [], solution: [],
   },

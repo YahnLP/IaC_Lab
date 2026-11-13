@@ -1,7 +1,7 @@
 /** Interface : arborescence, éditeur, terminal et vue SVG. Tout le texte est inséré via textContent. */
 import type { Lab } from '../engine';
 import { CATALOG, tpById } from '../tp/catalog';
-import { SELF_LEVELS, SELF_MEANING, answerQuestion, checkTp, exportSave, importSave, isComplete, nextHint, rateSelf, recordCommand, startTp, stepDone, type Progress } from '../tp/engine';
+import { SELF_LEVELS, SELF_MEANING, answerQuestion, checkTp, exportSave, importSave, isComplete, nextHint, rateSelf, recordCommand, startTp, appendBlock, editText, stepDone, type Progress } from '../tp/engine';
 import type { Tp } from '../tp/types';
 import { buildReport, reportHtml, reportJson } from '../tp/report';
 import { buildView, shortType, type Status, type ViewItem } from './model';
@@ -113,10 +113,14 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
             b.textContent = 'Mettre dans le terminal'; b.addEventListener('click', () => { cmd.value = a.cmd; cmd.focus(); });
           } else if ('open' in a) {
             b.textContent = `Ouvrir ${a.open.slice(a.open.lastIndexOf('/') + 1)}`; b.addEventListener('click', () => openFile(a.open));
+          } else if ('edit' in a) {
+            const pre = document.createElement('pre'); pre.textContent = `- ${a.edit.from}\n+ ${a.edit.to}`; li.appendChild(pre);
+            b.textContent = 'Faire la modification pour moi';
+            b.addEventListener('click', () => { const cur = lab.getState().files[a.edit.path] ?? ''; const nx = editText(cur, a.edit.from, a.edit.to); if (nx === null) { $('edmsg').textContent = 'Cette modification est déjà faite ou le texte a changé : modifie le fichier à la main.'; return; } lab.dispatch('fs.write', { path: a.edit.path, content: nx }); openFile(a.edit.path); persist(); refresh(); });
           } else {
             const pre = document.createElement('pre'); pre.textContent = a.insert.text; li.appendChild(pre);
             b.textContent = `Ajouter à ${a.insert.path.slice(a.insert.path.lastIndexOf('/') + 1)}`;
-            b.addEventListener('click', () => { const cur = lab.getState().files[a.insert.path] ?? ''; lab.dispatch('fs.write', { path: a.insert.path, content: `${cur.replace(/\s*$/, '')}\n\n${a.insert.text}` }); openFile(a.insert.path); persist(); refresh(); });
+            b.addEventListener('click', () => { const cur = lab.getState().files[a.insert.path] ?? ''; lab.dispatch('fs.write', { path: a.insert.path, content: appendBlock(cur, a.insert.text) }); openFile(a.insert.path); persist(); refresh(); });
           }
           li.appendChild(b); ul.appendChild(li);
         }

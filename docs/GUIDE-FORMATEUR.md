@@ -2,7 +2,7 @@
 
 ## En deux phrases
 
-IaC Lab simule Terraform et Ansible dans le navigateur autour d'un fil rouge (la Brasserie du Port). Chaque TP a une consigne, des objectifs vérifiés automatiquement, des questions avec explication, des indices et une phrase de bilan.
+IaC Lab simule Terraform et Ansible dans le navigateur autour d'un fil rouge (la Brasserie du Port). Chaque TP est un parcours guidé en étapes (« Pour comprendre », « À faire », « Tu devrais voir »), avec des objectifs vérifiés automatiquement, des questions avec explication, des indices et une phrase de bilan.
 
 ## Place dans la formation
 
@@ -28,6 +28,7 @@ Les durées figurent dans [couverture-competences.md](couverture-competences.md)
 ## Mode examen et compte rendu
 
 - **Mode examen** (case dans l'en-tête) : pas d'indices, pas de coches, pas d'explication ni de retour sur les réponses ; seule la dernière réponse compte.
+- **Parcours guidé** : un TP se déroule étape par étape. Chaque étape explique la notion, donne la commande exacte (bouton « Mettre dans le terminal », qui remplit la ligne sans l'exécuter), propose d'ouvrir un fichier ou d'ajouter un bloc de code (« Ajouter à main.tf », « Faire la modification pour moi » ; l'élève peut aussi taper lui-même) et décrit ce qu'on doit voir. « Suivant » s'active quand l'étape est réellement faite ; « Passer cette étape » reste possible. Les questions sont affichées dans l'étape qui les concerne. La liste des objectifs apparaît à la dernière étape. En mode examen, les consignes d'étapes restent visibles mais ni les indices ni les corrections.
 - **Compte rendu** : objectifs atteints par TP, indices demandés, essais aux questions, auto-évaluation. Export HTML (imprimable) ou JSON. Le pourcentage est un taux d'objectifs, pas une note : aucune grille n'est fournie.
 - **Sauvegarde** : automatique dans le navigateur ; export/import d'un fichier JSON depuis le panneau Mission pour changer de poste.
 - Le bouton **Réinitialiser** efface tout (dont la progression).

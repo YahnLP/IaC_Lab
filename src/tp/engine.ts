@@ -55,6 +55,11 @@ export function recordCommand(progress: Progress, tpId: string, line: string): v
   const log = (progress.ran[tpId] ??= []); log.push(l); if (log.length > 200) log.splice(0, log.length - 200);
 }
 
+/** Ajoute un bloc à la fin d'un fichier (action « insert »). */
+export const appendBlock = (content: string, text: string): string => { const c = content.replace(/\s*$/, ''); return c === '' ? text : `${c}\n\n${text}`; };
+/** Remplace la première occurrence de `from` (action « edit »). Renvoie null si `from` est introuvable. */
+export const editText = (content: string, from: string, to: string): string | null => (content.includes(from) ? content.replace(from, () => to) : null);
+
 /** Une étape est terminée quand sa condition est remplie ; sans condition, l'élève avance quand il veut. */
 export function stepDone(step: Step, progress: Progress, tpId: string): boolean {
   const u = step.until; if (!u) return true;

@@ -59,7 +59,7 @@ M2 Ansible ; M3 interface ; M4 moteur de TP et vérificateur ; M5 à M8 contenu,
 
 ## Jalon M4 : moteur de TP, vérificateur, sauvegarde
 
-- `src/tp/types.ts` : un TP = énoncé, fichiers de départ, commandes de préparation du monde (`setup`), objectifs, indices.
+- `src/tp/types.ts` : un TP = énoncé, parcours guidé (`steps` : `Step` avec `learn`, `do` — actions `cmd`, `open`, `insert`, `edit` —, `expect`, `ask`, `until`), fichiers de départ, commandes de préparation du monde (`setup`), objectifs, indices.
 - `src/tp/checks.ts` : constructeurs d'objectifs (`fileContains`, `worldHas`, `planClean` sur une copie de l'état, `guest`…). Le vérificateur ne modifie jamais l'état.
 - `src/tp/engine.ts` : `startTp` (laboratoire neuf reproductible), `checkTp` (objectifs conservés une fois validés), `nextHint` (indices comptés), `exportSave` / `importSave` (journal + progression, fichier JSON).
 - `src/tp/catalog.ts` : 2 TP d'essai ; les étapes 0 à 5 arrivent en M5 et M6.
@@ -71,6 +71,7 @@ M2 Ansible ; M3 interface ; M4 moteur de TP et vérificateur ; M5 à M8 contenu,
 - Chaque TP porte : intention, durée, compétences (**proposition d'auteur, à valider**), idée reçue éventuelle, objectifs vérifiables, questions à choix (explication affichée), indices, phrase de bilan et **solution de référence** rejouée par les tests.
 - Les tests `tp.test.ts` vérifient pour chaque TP : aucun objectif atteint au départ, solution = 100 %, textes complets, vérification sans effet sur l'état, plus des scénarios (script rejoué, `~` puis `-/+`, cycle, dérive, doublon prod).
 - Nouveautés du terminal : `bash <fichier>` (script de lignes `cloud create …`), `cloud list`, `cloud create`.
+- Parcours guidé : `progress.step` (étape courante), `progress.ran` (dernières commandes tapées), `stepDone` (une étape est faite quand l'objectif `until.done` est validé et/ou qu'une commande correspondant à `until.ran` a été tapée). Les tests suivent chaque action `cmd`/`insert`/`edit` à la lettre et vérifient que le TP atteint 100 % : un énoncé qui ne mène pas au résultat fait échouer la suite.
 - Séquences d'objectifs : `check(st, done)` permet d'exiger qu'un objectif précède un autre (ex. « remis en conformité » après « dérive provoquée »).
 - Test / production : dossiers séparés, même `main.tf`, `terraform.tfvars` différent (pas de workspaces, décision d'auteur).
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG, tpById } from '../../src/tp/catalog';
-import { SELF_LEVELS, answerQuestion, checkTp, rateSelf, exportSave, importSave, isComplete, newProgress, nextHint, recordCommand, startTp, stepDone } from '../../src/tp/engine';
+import { SELF_LEVELS, answerQuestion, checkTp, rateSelf, exportSave, importSave, isComplete, newProgress, nextHint, recordCommand, startTp, stepDone, appendBlock, editText } from '../../src/tp/engine';
 import type { Tp } from '../../src/tp/types';
 import { Session } from '../../src/ui/session';
 
@@ -48,11 +48,13 @@ describe.each(CATALOG.filter(t => t.steps).map(t => [t.id, t] as const))('parcou
     for (const [i, st] of tp.steps!.entries()) {
       for (const a of st.do ?? []) {
         if ('cmd' in a) { s.exec(a.cmd); recordCommand(p, tp.id, a.cmd); }
-        else if ('insert' in a) { const cur = lab.getState().files[a.insert.path] ?? ''; lab.dispatch('fs.write', { path: a.insert.path, content: `${cur.replace(/\s*$/, '')}\n\n${a.insert.text}` }); }
+        else if ('insert' in a) { const cur = lab.getState().files[a.insert.path] ?? ''; lab.dispatch('fs.write', { path: a.insert.path, content: appendBlock(cur, a.insert.text) }); }
+        else if ('edit' in a) { const cur = lab.getState().files[a.edit.path] ?? ''; const nx = editText(cur, a.edit.from, a.edit.to); expect(nx, `étape ${i + 1} : texte à modifier introuvable « ${a.edit.from} »`).not.toBeNull(); lab.dispatch('fs.write', { path: a.edit.path, content: nx! }); }
         else expect(lab.getState().files[a.open], `étape ${i + 1} : fichier à ouvrir introuvable`).toBeDefined();
         checkTp(tp, lab.getState(), p);
       }
       for (const qid of st.ask ?? []) { const q = tp.questions!.find(x => x.id === qid)!; expect(q, `question ${qid}`).toBeDefined(); answerQuestion(tp, p, qid, q.correct); }
+      if (st.until?.done === 'self') for (const it of tp.selfEval ?? []) rateSelf(tp, p, it.id, 2);
       checkTp(tp, lab.getState(), p);
       expect(stepDone(st, p, tp.id), `étape ${i + 1} « ${st.title} » non terminée`).toBe(true);
     }
@@ -61,7 +63,7 @@ describe.each(CATALOG.filter(t => t.steps).map(t => [t.id, t] as const))('parcou
     expect(res.filter(r => !r.ok).map(r => r.objective.label)).toEqual([]);
   });
   it('les conditions des étapes sont valides', () => {
-    const ids = new Set([...tp.objectives.map(o => o.id), ...(tp.questions ?? []).map(q => `q:${q.id}`)]);
+    const ids = new Set([...(tp.selfEval ? ['self'] : []), ...tp.objectives.map(o => o.id), ...(tp.questions ?? []).map(q => `q:${q.id}`)]);
     for (const st of tp.steps!) {
       if (st.until?.done !== undefined) expect(ids.has(st.until.done), st.until.done).toBe(true);
       if (st.until?.ran !== undefined) expect(() => new RegExp(st.until!.ran!)).not.toThrow();
@@ -69,6 +71,8 @@ describe.each(CATALOG.filter(t => t.steps).map(t => [t.id, t] as const))('parcou
     }
   });
 });
+
+it('tous les TP ont un parcours guidé', () => { expect(CATALOG.filter(t => !t.steps || t.steps.length < 2).map(t => t.id)).toEqual([]); });
 
 describe('scénarios', () => {
   it('0.1 : la recette diffère de la production', () => {

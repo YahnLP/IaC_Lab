@@ -25,7 +25,8 @@ export type SolutionStep =
 export type Action =
   | { cmd: string; note: string }                          // à taper dans le terminal
   | { open: string; note: string }                         // à ouvrir dans l'éditeur
-  | { insert: { path: string; text: string }; note: string } // extrait de code à ajouter à un fichier
+  | { insert: { path: string; text: string }; note: string }
+  | { edit: { path: string; from: string; to: string }; note: string } // extrait de code à ajouter à un fichier
 
 /** Une étape guidée : pourquoi, quoi faire, quoi observer, comment savoir que c'est fait. */
 export interface Step {
