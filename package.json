@@ -1,0 +1,23 @@
+{
+  "name": "iaclab",
+  "version": "0.0.1",
+  "license": "EUPL-1.2",
+  "author": "Yahn LE PRETTRE - Formaxion Landes",
+  "private": true,
+  "description": "Laboratoire pédagogique « décrire l'infrastructure dans du code » (Terraform et Ansible simulés)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "vite-plugin-singlefile": "^2.0.0",
+    "vitest": "^2.1.0"
+  }
+}
