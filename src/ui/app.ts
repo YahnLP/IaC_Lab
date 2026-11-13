@@ -1,7 +1,7 @@
 /** Interface : arborescence, éditeur, terminal et vue SVG. Tout le texte est inséré via textContent. */
 import type { Lab } from '../engine';
 import { CATALOG, tpById } from '../tp/catalog';
-import { checkTp, exportSave, importSave, isComplete, newProgress, nextHint, startTp, type Progress } from '../tp/engine';
+import { answerQuestion, checkTp, exportSave, importSave, isComplete, newProgress, nextHint, startTp, type Progress } from '../tp/engine';
 import type { Tp } from '../tp/types';
 import { buildView, shortType, type Status, type ViewItem } from './model';
 import { Session } from './session';
@@ -80,17 +80,34 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
   function persist(): void { checkTp(tp, lab.getState(), progress); hooks.save(exportSave(tp.id, lab, progress)); }
   function renderMission(): void {
     const sel = $<HTMLSelectElement>('tpsel');
-    if (!sel.options.length) for (const t of CATALOG) { const o = document.createElement('option'); o.value = t.id; o.textContent = `Étape ${t.stage} — ${t.title}`; sel.appendChild(o); }
+    if (!sel.options.length) for (const t of CATALOG) { const o = document.createElement('option'); o.value = t.id; o.textContent = `${t.num} — ${t.title}`; sel.appendChild(o); }
     sel.value = tp.id;
-    $('brief').replaceChildren(...tp.brief.split('\n\n').map(para => { const p = document.createElement('p'); p.textContent = para; return p; }));
+    const para = (t: string, cls = ''): HTMLParagraphElement => { const p = document.createElement('p'); p.textContent = t; if (cls) p.className = cls; return p; };
+    $('brief').replaceChildren(
+      para(`${tp.num} · ${tp.minutes} min · compétences (à valider) : ${tp.skills.join(', ')}`, 'mut'),
+      para(tp.intention, 'mut'),
+      ...(tp.myth ? [para(`Idée reçue : « ${tp.myth} »`, 'mut')] : []),
+      ...tp.brief.split('\n\n').map(t => para(t)));
     const res = checkTp(tp, lab.getState(), progress);
-    $('objs').replaceChildren(...res.map(r => { const li = document.createElement('li'); li.textContent = `${r.ok ? '✔' : '○'} ${r.objective.label}`; li.className = `${r.ok ? 'ok' : ''} ${r.sticky ? 'sticky' : ''}`.trim(); return li; }));
-    if (isComplete(res)) $('hint').textContent = 'Mission accomplie.';
+    $('objs').replaceChildren(...res.filter(r => !r.objective.id.startsWith('q:')).map(r => { const li = document.createElement('li'); li.textContent = `${r.ok ? '✔' : '○'} ${r.objective.label}`; li.className = `${r.ok ? 'ok' : ''} ${r.sticky ? 'sticky' : ''}`.trim(); return li; }));
+    const qbox = $('quest'); qbox.replaceChildren();
+    for (const q of tp.questions ?? []) {
+      const field = document.createElement('fieldset'); const lg = document.createElement('legend');
+      const okQ = res.find(r => r.objective.id === `q:${q.id}`)?.ok ?? false; lg.textContent = `${okQ ? '✔ ' : ''}${q.prompt}`; field.appendChild(lg);
+      const fb = document.createElement('div'); fb.setAttribute('role', 'status');
+      q.choices.forEach((c, i) => {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = c;
+        b.addEventListener('click', () => { const r = answerQuestion(tp, progress, q.id, i); persist(); renderMission(); const again = $('quest').querySelector(`[data-q="${q.id}"]`); if (again) again.textContent = `${r.ok ? 'Exact. ' : 'Pas tout à fait. '}${r.ok ? r.explain : 'Relisez la consigne et réessayez.'}`; });
+        field.appendChild(b);
+      });
+      fb.dataset['q'] = q.id; field.appendChild(fb); qbox.appendChild(field);
+    }
+    if (isComplete(res)) $('hint').textContent = `Mission accomplie. ${tp.bilan}`;
   }
   function load(next: { tp: string; lab: Lab; progress: Progress }): void {
     lab = next.lab; progress = next.progress; tp = tpById(next.tp) ?? CATALOG[0]!; sess = new Session(lab, tp.dir);
     current = null; ed.value = ''; ed.disabled = true; out.replaceChildren(); $('hint').textContent = ''; $<HTMLButtonElement>('save').disabled = true; $('edtitle').textContent = 'Éditeur';
-    print(`Étape ${tp.stage} — ${tp.title}. Tapez « help » pour la liste des commandes.`, 'info'); print('', '');
+    print(`${tp.num} — ${tp.title}. Tapez « help » pour la liste des commandes.`, 'info'); print('', '');
     persist(); refresh(); const first = Object.keys(lab.getState().files).sort().find(f => f.endsWith('.tf') || f.endsWith('.yml')); if (first) openFile(first); cmd.focus();
   }
   function refresh(): void { renderMission(); renderTree(); drawView(); refreshPrompt(); }

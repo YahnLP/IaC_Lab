@@ -5,15 +5,37 @@ export interface Objective {
   id: string;
   label: string;
   /** Vrai si l'objectif est atteint. */
-  check(st: Readonly<State>): boolean;
+  /** `done` : objectifs déjà validés dans l'ordre de l'énoncé (permet d'exiger une séquence). */
+  check(st: Readonly<State>, done?: ReadonlySet<string>): boolean;
 }
 
 export interface SetupCommand { type: string; payload: Record<string, unknown> }
+
+export interface Question { id: string; prompt: string; choices: string[]; correct: number; explain: string }
+
+/** Une étape de la solution de référence, rejouée par les tests (chaque TP doit pouvoir être résolu à 100 %). */
+export type SolutionStep =
+  | { write: string; content: string }
+  | { run: string }
+  | { answer: string };
 
 export interface Tp {
   id: string;
   stage: number;
   title: string;
+  /** Numéro lisible : « 1.2 », « TD1 »… */
+  num: string;
+  minutes: number;
+  /** Pourquoi on fait ce TP, en une phrase. */
+  intention: string;
+  /** Codes de compétences : proposition d'auteur, à valider. */
+  skills: string[];
+  /** Idée reçue confrontée, s'il y en a une. */
+  myth?: string;
+  /** Phrase de bilan affichée à la réussite. */
+  bilan: string;
+  questions?: Question[];
+  solution: SolutionStep[];
   /** Texte de la mission, en prose courte (paragraphes séparés par une ligne vide). */
   brief: string;
   /** Dossier de travail ouvert au démarrage. */

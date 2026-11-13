@@ -37,3 +37,16 @@ export const stateHas = (id: string, label: string, dir: string, addr: string): 
 export const guest = (id: string, label: string, vm: string, test: (g: Guest) => boolean): Objective => ({
   id, label, check: st => { const v = vmByName(st, vm); return !!v && test(v['guest'] as Guest); },
 });
+
+/** Règle de pare-feu sur la machine nommée. */
+export const ruleOn = (id: string, label: string, vm: string, port: number): Objective => ({
+  id, label, check: st => {
+    const v = vmByName(st, vm); if (!v) return false;
+    return Object.values(st.cloud['cloudpeda_firewall_rule'] ?? {}).some(r => r['vm_id'] === v['id'] && r['port'] === port);
+  },
+});
+
+/** Objectif conditionné par un objectif précédent (séquence), puis par un test sur l'état. */
+export const after = (id: string, label: string, previous: string, test: (st: Readonly<State>) => boolean): Objective => ({
+  id, label, check: (st, done) => !!done?.has(previous) && test(st),
+});

@@ -1,7 +1,7 @@
 /** Moteur de TP : démarrage reproductible, vérification des objectifs, progression, sauvegarde. */
 import { createLab, type Lab } from '../engine';
 import type { State } from '../state';
-import type { Objective, Tp } from './types';
+import type { Objective, Question, Tp } from './types';
 
 export interface Progress {
   /** Objectifs déjà validés (conservés même si l'état change ensuite). */
@@ -10,8 +10,10 @@ export interface Progress {
   hints: Record<string, number>;
   /** Nombre de commandes passées par TP (pour le bilan). */
   commands: Record<string, number>;
+  /** Réponses données aux questions : TP → question → numéro de choix (dernier essai) et nombre d'essais. */
+  answers: Record<string, Record<string, { choice: number; tries: number }>>;
 }
-export const newProgress = (): Progress => ({ done: {}, hints: {}, commands: {} });
+export const newProgress = (): Progress => ({ done: {}, hints: {}, commands: {}, answers: {} });
 
 /** Crée un laboratoire neuf prêt pour le TP : fichiers de départ puis préparation du monde. */
 export function startTp(tp: Tp): Lab {
@@ -23,11 +25,24 @@ export function startTp(tp: Tp): Lab {
 
 export interface CheckResult { objective: Objective; ok: boolean; sticky: boolean }
 
+/** Objectifs dérivés des questions : validés par `answerQuestion`, jamais par l'état. */
+export const questionObjectives = (qs: Question[] = []): Objective[] => qs.map(q => ({ id: `q:${q.id}`, label: `Question : ${q.prompt}`, check: () => false }));
+
+export function answerQuestion(tp: Tp, progress: Progress, qid: string, choice: number): { ok: boolean; explain: string } {
+  const q = tp.questions?.find(x => x.id === qid);
+  if (!q) throw new Error(`question inconnue : ${qid}`);
+  const rec = (progress.answers[tp.id] ??= {});
+  rec[qid] = { choice, tries: (rec[qid]?.tries ?? 0) + 1 };
+  const ok = choice === q.correct;
+  if (ok) { const d = new Set(progress.done[tp.id] ?? []); d.add(`q:${q.id}`); progress.done[tp.id] = [...d]; }
+  return { ok, explain: q.explain };
+}
+
 /** Vérifie les objectifs ; un objectif déjà validé le reste. Met `progress` à jour. */
 export function checkTp(tp: Tp, st: Readonly<State>, progress: Progress): CheckResult[] {
   const done = new Set(progress.done[tp.id] ?? []);
-  const res = tp.objectives.map(o => {
-    const live = o.check(st);
+  const res = [...tp.objectives, ...questionObjectives(tp.questions)].map(o => {
+    const live = o.check(st, done);
     if (live) done.add(o.id);
     return { objective: o, ok: live || done.has(o.id), sticky: !live && done.has(o.id) };
   });
@@ -61,5 +76,5 @@ export function importSave(text: string): { tp: string; lab: Lab; progress: Prog
   const lab = createLab();
   lab.restore(f.journal);
   const p = f.progress ?? newProgress();
-  return { tp: f.tp, lab, progress: { done: p.done ?? {}, hints: p.hints ?? {}, commands: p.commands ?? {} } };
+  return { tp: f.tp, lab, progress: { done: p.done ?? {}, hints: p.hints ?? {}, commands: p.commands ?? {}, answers: p.answers ?? {} } };
 }

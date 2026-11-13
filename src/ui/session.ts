@@ -8,7 +8,8 @@ export interface Line { text: string; kind: 'out' | 'err' | 'in' | 'info' }
 const HELP = `Commandes : ls, cat, cd, pwd, rm, mkdir, echo, clear, edit <fichier>
 Outils : terraform init|validate|plan|apply|destroy|show|output|state|fmt|refresh
          ansible <hôtes> -m <module> -a "<args>", ansible-playbook <fichier>, ansible-inventory --list
-Console du fournisseur (modifier « à la main ») : cloud vms | cloud set <id> <attribut> <valeur> | cloud delete <type> <id>
+Scripts : bash <fichier>   (exécute les lignes « cloud create … » d'un fichier)
+Console du fournisseur (modifier « à la main ») : cloud list | cloud create <type> clé=valeur … | cloud vms | cloud set <id> <attribut> <valeur> | cloud delete <type> <id>
 Dans l'éditeur : Ctrl+S enregistre.`;
 
 export class Session {
@@ -79,6 +80,17 @@ export class Session {
         this.openRequest = join(this.cwd, w[1]); return out(`Ouverture de ${w[1]} dans l'éditeur.`, 'info');
       }
       case 'cloud': return this.cloud(w.slice(1));
+      case 'bash': case 'sh': {
+        if (!w[1]) return out('usage: bash <fichier>', 'err');
+        const c = readFile(st, join(this.cwd, w[1]));
+        if (c === undefined) return out(`bash: ${w[1]}: No such file or directory`, 'err');
+        const res: Line[] = [];
+        for (const l of c.split('\n')) {
+          const t = l.trim(); if (!t || t.startsWith('#')) continue;
+          res.push({ text: `+ ${t}`, kind: 'info' }); res.push(...this.run(t));
+        }
+        return res;
+      }
       default: return out(`${cmd}: command not found`, 'err');
     }
   }
@@ -90,7 +102,23 @@ export class Session {
       const vms = Object.values(st.cloud['cloudpeda_vm'] ?? {});
       return out(vms.length ? vms.map(v => `${String(v['id'])}  ${String(v['name']).padEnd(14)} ${String(v['ip'])}  ${String(v['size'])}`).join('\n') : 'Aucune machine.');
     }
+    if (a[0] === 'list') {
+      const lines: string[] = [];
+      for (const [type, table] of Object.entries(st.cloud)) for (const o of Object.values(table)) {
+        const extra = Object.entries(o).filter(([k]) => !['id', 'name', 'guest'].includes(k)).map(([k, v]) => `${k}=${String(v)}`).join(' ');
+        lines.push(`${type.replace('cloudpeda_', '').padEnd(14)} ${String(o['id']).padEnd(9)} ${String(o['name'] ?? '').padEnd(18)} ${extra}`.trimEnd());
+      }
+      return out(lines.length ? lines.join('\n') : 'Aucune ressource.');
+    }
     try {
+      if (a[0] === 'create' && a.length >= 2) {
+        const type = a[1]!.startsWith('cloudpeda_') ? a[1]! : `cloudpeda_${a[1]!}`;
+        const args: Record<string, unknown> = {};
+        for (const kv of a.slice(2)) { const i = kv.indexOf('='); if (i > 0) { const v = kv.slice(i + 1); args[kv.slice(0, i)] = /^-?\d+$/.test(v) ? Number(v) : v; } }
+        const r = this.lab.dispatch('cloud.create', { type, args });
+        if (!r.ok) return out(`Erreur : ${r.output ?? 'création refusée'}`, 'err');
+        return out(`${String(JSON.parse(r.output ?? '{}').id)} créé.`);
+      }
       if (a[0] === 'set' && a.length >= 4) {
         const type = Object.keys(st.cloud).find(t => st.cloud[t]?.[a[1]!]);
         if (!type) return out(`cloud: objet ${a[1]} introuvable`, 'err');
@@ -99,6 +127,6 @@ export class Session {
       }
       if (a[0] === 'delete' && a.length >= 3) { this.lab.dispatch('cloud.delete', { type: a[1], id: a[2] }); return out(`${a[2]} supprimé.`); }
     } catch (e) { return out(e instanceof Error ? e.message : String(e), 'err'); }
-    return out('usage : cloud vms | cloud set <id> <attribut> <valeur> | cloud delete <type> <id>', 'err');
+    return out('usage : cloud list | cloud create <type> clé=valeur … | cloud vms | cloud set <id> <attribut> <valeur> | cloud delete <type> <id>', 'err');
   }
 }

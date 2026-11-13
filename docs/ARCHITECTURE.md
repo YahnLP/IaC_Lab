@@ -64,3 +64,12 @@ M2 Ansible ; M3 interface ; M4 moteur de TP et vérificateur ; M5 à M8 contenu,
 - `src/tp/engine.ts` : `startTp` (laboratoire neuf reproductible), `checkTp` (objectifs conservés une fois validés), `nextHint` (indices comptés), `exportSave` / `importSave` (journal + progression, fichier JSON).
 - `src/tp/catalog.ts` : 2 TP d'essai ; les étapes 0 à 5 arrivent en M5 et M6.
 - Interface : panneau Mission (choix du TP, consigne, objectifs cochés en direct, indice, recommencer, export/import). Sauvegarde automatique dans `localStorage`.
+
+## Jalon M5 : contenu des étapes 0, 1 et 2
+
+- 10 TP dans `src/tp/stage0.ts`, `stage1.ts`, `stage2.ts` : 0.1, 0.2 ; 1.1 à 1.4, TD1 ; 2.1 à 2.3 (fil rouge : Brasserie du Port).
+- Chaque TP porte : intention, durée, compétences (**proposition d'auteur, à valider**), idée reçue éventuelle, objectifs vérifiables, questions à choix (explication affichée), indices, phrase de bilan et **solution de référence** rejouée par les tests.
+- Les tests `tp.test.ts` vérifient pour chaque TP : aucun objectif atteint au départ, solution = 100 %, textes complets, vérification sans effet sur l'état, plus des scénarios (script rejoué, `~` puis `-/+`, cycle, dérive, doublon prod).
+- Nouveautés du terminal : `bash <fichier>` (script de lignes `cloud create …`), `cloud list`, `cloud create`.
+- Séquences d'objectifs : `check(st, done)` permet d'exiger qu'un objectif précède un autre (ex. « remis en conformité » après « dérive provoquée »).
+- Test / production : dossiers séparés, même `main.tf`, `terraform.tfvars` différent (pas de workspaces, décision d'auteur).
