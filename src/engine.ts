@@ -3,6 +3,7 @@ import { CommandRefused, Store, type Result } from './core/store';
 import { removeFile, writeFile } from './shell/vfs';
 import { splitWords } from './shell/words';
 import { newState, type State } from './state';
+import { runAnsible } from './ansible/commands';
 import { runTerraform } from './terraform/commands';
 import { ProviderError, createResource, deleteResource, setAttribute } from './world/provider';
 
@@ -21,11 +22,23 @@ export function createLab(): Lab {
     return runTerraform(st, { dir: p.dir, args: words.slice(1), ...(p.answer !== undefined ? { answer: p.answer } : {}) });
   });
 
+  /** Lignes de commande « ansible… » exécutées dans un dossier. */
+  lab.register('ans.exec', (st, p: { dir: string; line: string }): Result => {
+    const w = splitWords(p.line);
+    if (!['ansible', 'ansible-playbook', 'ansible-inventory'].includes(w[0] ?? '')) return { ok: false, output: `${w[0] ?? ''}: command not found`, code: 127 };
+    return runAnsible(st, { dir: p.dir, cmd: w[0]!, args: w.slice(1) });
+  });
+
   /** Console du fournisseur : actions faites « à la main », hors de tout code. */
   const guard = <T>(fn: () => T): T => { try { return fn(); } catch (e) { if (e instanceof ProviderError) throw new CommandRefused(e.message); throw e; } };
   lab.register('cloud.create', (st, p: { type: string; args: Record<string, any> }) => ({ ok: true, output: JSON.stringify(guard(() => createResource(st, p.type, p.args))) }));
   lab.register('cloud.set', (st, p: { type: string; id: string; attr: string; value: any }) => { guard(() => setAttribute(st, p.type, p.id, p.attr, p.value)); return { ok: true }; });
   lab.register('cloud.delete', (st, p: { type: string; id: string }) => { guard(() => deleteResource(st, p.type, p.id)); return { ok: true }; });
+  /** Modifications faites « à la main » dans une machine (pour provoquer une dérive). */
+  const vm = (st: State, id: string) => { const v = st.cloud['cloudpeda_vm']?.[id]; if (!v) throw new CommandRefused(`machine ${id} introuvable`); return v['guest'] as import('./state').Guest; };
+  lab.register('guest.write', (st, p: { vm: string; path: string; content: string }) => { vm(st, p.vm).files[p.path] = { content: p.content, mode: '0644', owner: 'root' }; return { ok: true }; });
+  lab.register('guest.service', (st, p: { vm: string; name: string; active: boolean }) => { const s = vm(st, p.vm).services[p.name]; if (!s) throw new CommandRefused(`service ${p.name} inconnu`); s.active = p.active; return { ok: true }; });
+  lab.register('guest.package', (st, p: { vm: string; name: string }) => { const g = vm(st, p.vm); g.packages = g.packages.filter(x => x !== p.name); return { ok: true }; });
   return lab;
 }
 
@@ -34,3 +47,4 @@ export function write(lab: Lab, path: string, content: string): void { lab.dispa
 export function tf(lab: Lab, dir: string, line: string, answer?: string): Result {
   return lab.dispatch('tf.exec', { dir, line: line.startsWith('terraform') ? line : `terraform ${line}`, ...(answer !== undefined ? { answer } : {}) });
 }
+export function ans(lab: Lab, dir: string, line: string): Result { return lab.dispatch('ans.exec', { dir, line }); }

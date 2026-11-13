@@ -36,3 +36,14 @@ Blocs `terraform` (`required_providers`), `provider`, `variable` (`type`, `defau
 
 ## Reste à faire (jalons suivants)
 M2 Ansible ; M3 interface ; M4 moteur de TP et vérificateur ; M5 à M8 contenu, bilan, accessibilité, build autonome, documentation, « Maintenant en vrai ». Le bloc `module` simple du plan de phase 0 (niveau avancé) n'est **pas** encore fait.
+
+## Jalon M2 : moteur Ansible simulé
+
+- `src/yaml` : sous-ensemble de YAML (mappings, listes, blocs `|` et `>`, listes en ligne).
+- `src/ansible/inventory.ts` : inventaire INI (groupes, `:vars`, `:children`).
+- `src/ansible/jinja.ts` : `{{ variable | filtre }}` et conditions `when:` (pas de blocs `{% %}`).
+- `src/ansible/modules.ts` : ping, apt, service, copy, template, file, user, lineinfile, command/shell, debug, appliqués à l'état invité de la machine (`Guest`).
+- `src/ansible/commands.ts` : `ansible`, `ansible-playbook` (`--check`, `--diff`, `--limit`, `--syntax-check`, handlers, loop, when, register, become) et `ansible-inventory` (`--list`, `--graph`).
+- Machines atteintes par `ansible_host` (IP ou nom) ou par le nom de l'hôte ; sinon UNREACHABLE.
+- Simplifications : pas de rôles, `include`, `block/rescue`, vault ni facts détaillés ; en `--check`, `apt` ne crée pas les dossiers (comme en vrai, une tâche suivante peut échouer).
+- Commandes d'état « à la main » pour provoquer une dérive : `guest.write`, `guest.service`, `guest.package`.

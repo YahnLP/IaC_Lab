@@ -4,7 +4,7 @@
 export interface Guest {
   packages: string[];
   services: Record<string, { enabled: boolean; active: boolean }>;
-  files: Record<string, { content: string; mode: string; owner: string }>;
+  files: Record<string, { content: string; mode: string; owner: string; dir?: boolean }>;
   users: string[];
 }
 
