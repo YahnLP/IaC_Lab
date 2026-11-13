@@ -14,10 +14,14 @@ header button{margin-left:auto}
 button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer;font:inherit}
 button:hover,button:focus-visible{border-color:var(--acc)}
 :focus-visible{outline:2px solid var(--acc);outline-offset:1px}
-main{flex:1;display:grid;grid-template-columns:200px 1fr 1fr;grid-template-rows:1fr 1fr;grid-template-areas:"files editor view" "files term view";gap:1px;background:var(--line);min-height:0}
+main{flex:1;display:grid;grid-template-columns:270px 1fr 1fr;grid-template-rows:1fr 1fr;grid-template-areas:"files editor view" "files term view";gap:1px;background:var(--line);min-height:0}
 section{background:var(--panel);display:flex;flex-direction:column;min-height:0;min-width:0}
 section>h2{margin:0;padding:6px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);background:var(--panel2)}
 #files{grid-area:files}#editor{grid-area:editor}#term{grid-area:term}#view{grid-area:view}
+#mission{padding:8px 10px;overflow:auto;max-height:55%;font-size:13px}
+#mission select{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:4px;margin:2px 0 6px}
+#brief p{margin:0 0 6px}#objs{list-style:none;padding:0;margin:6px 0}#objs li{padding:2px 0}#objs li.ok{color:var(--ok)}#objs li.sticky::after{content:" (validé plus tôt)";color:var(--mut);font-size:11px}
+#hint{color:var(--new);margin:4px 0}#mbtns{display:flex;gap:4px;flex-wrap:wrap}#mbtns button{padding:3px 8px;font-size:12px}.mut{color:var(--mut)}
 #tree{list-style:none;margin:0;padding:6px;overflow:auto;font-family:ui-monospace,monospace;font-size:13px}
 #tree button{width:100%;text-align:left;border:0;background:none;padding:2px 6px;border-radius:4px}
 #tree button[aria-current=true]{background:var(--panel2);color:var(--acc)}
@@ -42,7 +46,11 @@ svg text{font:12px system-ui,sans-serif;fill:var(--txt)}svg .mut{fill:var(--mut)
 <header><h1>IaC Lab</h1><span>Brasserie du Port — simulateur : aucun vrai outil n'est exécuté</span>
 <button id="reset" type="button">Réinitialiser</button></header>
 <main>
-<section id="files" aria-label="Fichiers"><h2>Fichiers</h2><ul id="tree"></ul></section>
+<section id="files" aria-label="Mission et fichiers"><h2>Mission</h2>
+<div id="mission"><label for="tpsel" class="mut">TP</label><select id="tpsel"></select><div id="brief"></div>
+<ul id="objs" aria-label="Objectifs"></ul><div id="hint" role="status"></div>
+<div id="mbtns"><button id="hintbtn" type="button">Indice</button><button id="restart" type="button">Recommencer</button><button id="export" type="button">Exporter</button><button id="import" type="button">Importer</button><input id="file" type="file" accept="application/json,.json" hidden></div></div>
+<h2>Fichiers</h2><ul id="tree"></ul></section>
 <section id="editor" aria-label="Éditeur"><h2 id="edtitle">Éditeur</h2>
 <div id="edwrap"><div id="gutter" aria-hidden="true">1</div><textarea id="ed" spellcheck="false" aria-label="Contenu du fichier" disabled></textarea></div>
 <div id="edbar"><button id="save" type="button" disabled>Enregistrer (Ctrl+S)</button><span id="edmsg" role="status"></span></div></section>

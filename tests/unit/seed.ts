@@ -1,4 +1,4 @@
-/** Fichiers de départ : le projet de la Brasserie du Port (les parcours guidés arrivent aux jalons suivants). */
+/** Projet d'essai pour les tests de l'interface (indépendant du catalogue de TP). */
 export const SEED: Record<string, string> = {
   'brasserie/main.tf': `terraform {
   required_providers {
@@ -17,19 +17,5 @@ resource "cloudpeda_vm" "caisse" {
   name       = "caisse"
   network_id = cloudpeda_network.principal.id
 }
-`,
-  'brasserie/inventory.ini': `[caisse]
-caisse
-
-[all:vars]
-ansible_become=true
-`,
-  'brasserie/site.yml': `- name: Configurer la caisse
-  hosts: caisse
-  tasks:
-    - name: Installer nginx
-      ansible.builtin.apt:
-        name: nginx
-        state: present
 `,
 };

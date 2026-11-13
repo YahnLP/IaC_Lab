@@ -56,3 +56,11 @@ M2 Ansible ; M3 interface ; M4 moteur de TP et vérificateur ; M5 à M8 contenu,
 - `src/ui/app.ts` : DOM et SVG (texte inséré uniquement par `textContent`).
 - `src/ui/seed.ts` : projet de départ provisoire (les parcours de la Brasserie arrivent en M5-M6).
 - Vérifié dans Chromium (Playwright) : init, apply, playbook, aucune erreur console. Accessibilité (axe-core, clavier complet) : jalon M8.
+
+## Jalon M4 : moteur de TP, vérificateur, sauvegarde
+
+- `src/tp/types.ts` : un TP = énoncé, fichiers de départ, commandes de préparation du monde (`setup`), objectifs, indices.
+- `src/tp/checks.ts` : constructeurs d'objectifs (`fileContains`, `worldHas`, `planClean` sur une copie de l'état, `guest`…). Le vérificateur ne modifie jamais l'état.
+- `src/tp/engine.ts` : `startTp` (laboratoire neuf reproductible), `checkTp` (objectifs conservés une fois validés), `nextHint` (indices comptés), `exportSave` / `importSave` (journal + progression, fichier JSON).
+- `src/tp/catalog.ts` : 2 TP d'essai ; les étapes 0 à 5 arrivent en M5 et M6.
+- Interface : panneau Mission (choix du TP, consigne, objectifs cochés en direct, indice, recommencer, export/import). Sauvegarde automatique dans `localStorage`.

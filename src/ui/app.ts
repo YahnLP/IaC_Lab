@@ -1,5 +1,8 @@
 /** Interface : arborescence, éditeur, terminal et vue SVG. Tout le texte est inséré via textContent. */
 import type { Lab } from '../engine';
+import { CATALOG, tpById } from '../tp/catalog';
+import { checkTp, exportSave, importSave, isComplete, newProgress, nextHint, startTp, type Progress } from '../tp/engine';
+import type { Tp } from '../tp/types';
 import { buildView, shortType, type Status, type ViewItem } from './model';
 import { Session } from './session';
 
@@ -7,8 +10,9 @@ const NS = 'http://www.w3.org/2000/svg';
 const COLOR: Record<Status, string> = { ok: 'var(--ok)', new: 'var(--new)', orphan: 'var(--bad)', unmanaged: 'var(--unm)' };
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
-export function startApp(lab: Lab, hooks: { save(): void; reset(): void }): void {
-  const sess = new Session(lab, 'brasserie');
+export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hooks: { save(text: string): void; reset(): void }): void {
+  let lab = init.lab; let progress = init.progress; let tp: Tp = tpById(init.tp) ?? CATALOG[0]!;
+  let sess = new Session(lab, tp.dir);
   let current: string | null = null;
   const history: string[] = []; let hpos = 0;
   const out = $('out'), cmd = $<HTMLInputElement>('cmd'), ed = $<HTMLTextAreaElement>('ed');
@@ -38,7 +42,7 @@ export function startApp(lab: Lab, hooks: { save(): void; reset(): void }): void
   }
   function save(): void {
     if (!current) return;
-    lab.dispatch('fs.write', { path: current, content: ed.value }); $('edmsg').textContent = 'Enregistré.'; hooks.save(); refresh();
+    lab.dispatch('fs.write', { path: current, content: ed.value }); $('edmsg').textContent = 'Enregistré.'; persist(); refresh();
   }
 
   function box(svg: SVGSVGElement, x: number, y: number, w: number, it: ViewItem): void {
@@ -73,14 +77,31 @@ export function startApp(lab: Lab, hooks: { save(): void; reset(): void }): void
     for (const s of v.state) { arrow(pos.get(`0:${s.links[0]}`), pos.get(`1:${s.key}`)); const w = v.world.find(o => o.type === s.type && o.id === s.id); if (w) arrow(pos.get(`1:${s.key}`), pos.get(`2:${w.key}`)); }
     $('svgwrap').replaceChildren(svg);
   }
-  function refresh(): void { renderTree(); drawView(); refreshPrompt(); }
+  function persist(): void { checkTp(tp, lab.getState(), progress); hooks.save(exportSave(tp.id, lab, progress)); }
+  function renderMission(): void {
+    const sel = $<HTMLSelectElement>('tpsel');
+    if (!sel.options.length) for (const t of CATALOG) { const o = document.createElement('option'); o.value = t.id; o.textContent = `Étape ${t.stage} — ${t.title}`; sel.appendChild(o); }
+    sel.value = tp.id;
+    $('brief').replaceChildren(...tp.brief.split('\n\n').map(para => { const p = document.createElement('p'); p.textContent = para; return p; }));
+    const res = checkTp(tp, lab.getState(), progress);
+    $('objs').replaceChildren(...res.map(r => { const li = document.createElement('li'); li.textContent = `${r.ok ? '✔' : '○'} ${r.objective.label}`; li.className = `${r.ok ? 'ok' : ''} ${r.sticky ? 'sticky' : ''}`.trim(); return li; }));
+    if (isComplete(res)) $('hint').textContent = 'Mission accomplie.';
+  }
+  function load(next: { tp: string; lab: Lab; progress: Progress }): void {
+    lab = next.lab; progress = next.progress; tp = tpById(next.tp) ?? CATALOG[0]!; sess = new Session(lab, tp.dir);
+    current = null; ed.value = ''; ed.disabled = true; out.replaceChildren(); $('hint').textContent = ''; $<HTMLButtonElement>('save').disabled = true; $('edtitle').textContent = 'Éditeur';
+    print(`Étape ${tp.stage} — ${tp.title}. Tapez « help » pour la liste des commandes.`, 'info'); print('', '');
+    persist(); refresh(); const first = Object.keys(lab.getState().files).sort().find(f => f.endsWith('.tf') || f.endsWith('.yml')); if (first) openFile(first); cmd.focus();
+  }
+  function refresh(): void { renderMission(); renderTree(); drawView(); refreshPrompt(); }
 
   function run(line: string): void {
     print(`${sess.prompt}${line}`, 'in');
     if (line.trim() && !sess.pendingAnswer) history.push(line); hpos = history.length;
     for (const l of sess.exec(line)) { if (l.text === '\f') out.replaceChildren(); else print(l.text, l.kind === 'out' ? '' : l.kind); }
     if (sess.openRequest) { openFile(sess.openRequest); sess.openRequest = null; }
-    hooks.save(); refresh();
+    progress.commands[tp.id] = (progress.commands[tp.id] ?? 0) + (line.trim() ? 1 : 0);
+    persist(); refresh();
     if (current && lab.getState().files[current] !== undefined && document.activeElement !== ed) ed.value = lab.getState().files[current]!, gutter();
   }
 
@@ -96,8 +117,21 @@ export function startApp(lab: Lab, hooks: { save(): void; reset(): void }): void
     else if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); const s = ed.selectionStart; ed.setRangeText('  ', s, ed.selectionEnd, 'end'); gutter(); }
   });
   $('save').addEventListener('click', save);
+  $('tpsel').addEventListener('change', () => { const t = tpById($<HTMLSelectElement>('tpsel').value); if (t) load({ tp: t.id, lab: startTp(t), progress }); });
+  $('restart').addEventListener('click', () => { if (confirm('Recommencer ce TP ? Votre travail dans ce TP sera effacé.')) { delete progress.done[tp.id]; load({ tp: tp.id, lab: startTp(tp), progress }); } });
+  $('hintbtn').addEventListener('click', () => { const h = nextHint(tp, progress); $('hint').textContent = h ?? 'Plus d’indice : demandez à votre enseignant.'; persist(); });
+  $('export').addEventListener('click', () => {
+    const url = URL.createObjectURL(new Blob([exportSave(tp.id, lab, progress)], { type: 'application/json' }));
+    const a = document.createElement('a'); a.href = url; a.download = `iaclab-${tp.id}.json`; a.click(); URL.revokeObjectURL(url);
+  });
+  $('import').addEventListener('click', () => $('file').click());
+  $('file').addEventListener('change', async e => {
+    const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
+    try { const s = importSave(await f.text()); if (!tpById(s.tp)) throw new Error('TP inconnu dans cette version.'); load(s); }
+    catch (err) { print(err instanceof Error ? err.message : String(err), 'err'); }
+    (e.target as HTMLInputElement).value = '';
+  });
   $('reset').addEventListener('click', () => { if (confirm('Repartir de zéro ? Vos fichiers et le monde simulé seront effacés.')) hooks.reset(); });
 
-  print('IaC Lab — tapez « help ». Premier pas : terraform init', 'info'); print('', '');
-  refresh(); openFile('brasserie/main.tf'); cmd.focus();
+  load({ tp: tp.id, lab, progress });
 }

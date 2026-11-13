@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createLab } from '../../src/engine';
-import { SEED } from '../../src/ui/seed';
+import { SEED } from './seed';
 import { buildView } from '../../src/ui/model';
 import { Session } from '../../src/ui/session';
 
