@@ -93,7 +93,7 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
       para(tp.intention, 'mut'),
       ...(tp.myth ? [para(`Idée reçue : « ${tp.myth} »`, 'mut')] : [])];
     const res = checkTp(tp, lab.getState(), progress);
-    const steps = tp.steps;
+    const steps = tp.steps; let navEl: HTMLElement | null = null;
     if (!steps) $('brief').replaceChildren(...head, ...tp.brief.split('\n\n').map(t => para(t)));
     else {
       const n = Math.min(progress.step[tp.id] ?? 0, steps.length - 1); const st = steps[n]!;
@@ -123,15 +123,15 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
         box.appendChild(ul);
       }
       if (st.expect) { const eh = document.createElement('h4'); eh.textContent = 'Tu devrais voir'; box.appendChild(eh); box.appendChild(para(st.expect)); }
-      if (st.ask?.length) box.appendChild(para('Réponds à la question ci-dessous.', 'mut'));
+      if (st.ask?.length) box.appendChild(para("Réponds à la question juste en dessous, puis clique sur « Suivant ».", "mut"));
       const done = stepDone(st, progress, tp.id);
       const nav = document.createElement('div'); nav.className = 'stepnav';
       const prev = document.createElement('button'); prev.type = 'button'; prev.textContent = 'Précédent'; prev.disabled = n === 0; prev.addEventListener('click', () => go(-1));
       const next = document.createElement('button'); next.type = 'button'; next.textContent = n === steps.length - 1 ? 'Dernière étape' : 'Suivant'; next.disabled = !done || n === steps.length - 1; next.addEventListener('click', () => go(1));
       nav.append(prev, next);
       if (!done && n < steps.length - 1) { const skip = document.createElement('button'); skip.type = 'button'; skip.className = 'link'; skip.textContent = 'Passer cette étape'; skip.addEventListener('click', () => go(1)); nav.appendChild(skip); }
-      box.appendChild(nav);
-      if (!done) box.appendChild(para('Le bouton « Suivant » s’active quand cette étape est faite.', 'mut'));
+      navEl = nav;
+      if (!done) nav.appendChild(para('« Suivant » s’active quand cette étape est faite.', 'mut'));
       $('brief').replaceChildren(...head, box);
     }
     $('objs').replaceChildren(...res.filter(r => !r.objective.id.startsWith('q:')).map(r => { const li = document.createElement('li'); li.textContent = `${progress.exam ? '•' : r.ok ? '✔' : '○'} ${r.objective.label}`; li.className = progress.exam ? '' : `${r.ok ? 'ok' : ''} ${r.sticky ? 'sticky' : ''}`.trim(); return li; }));
@@ -150,6 +150,7 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
       });
       fb.dataset['q'] = q.id; field.appendChild(fb); qbox.appendChild(field);
     }
+    $('stepnavbox').replaceChildren(...(navEl ? [navEl] : []));
     const sbox = $('self'); sbox.replaceChildren();
     for (const it of tp.selfEval ?? []) {
       const f = document.createElement('fieldset'); const lg = document.createElement('legend'); lg.textContent = it.text; f.appendChild(lg);
@@ -162,8 +163,9 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
     }
     $<HTMLButtonElement>('hintbtn').disabled = progress.exam;
     $<HTMLInputElement>('exam').checked = progress.exam;
-    if (isComplete(res) && !progress.exam) $('hint').textContent = `Mission accomplie. ${tp.bilan}`;
-    else if (isComplete(res)) $('hint').textContent = 'Toutes les consignes sont traitées. Le détail est dans le compte rendu.';
+    if (!lastStep && /^(Mission accomplie|Toutes les consignes)/.test($('hint').textContent ?? '')) $('hint').textContent = '';
+    if (isComplete(res) && lastStep && !progress.exam) $('hint').textContent = `Mission accomplie. ${tp.bilan}`;
+    else if (isComplete(res) && lastStep) $('hint').textContent = 'Toutes les consignes sont traitées. Le détail est dans le compte rendu.';
   }
   function load(next: { tp: string; lab: Lab; progress: Progress }): void {
     lab = next.lab; progress = next.progress; tp = tpById(next.tp) ?? CATALOG[0]!; sess = new Session(lab, tp.dir);
