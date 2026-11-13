@@ -142,7 +142,7 @@ describe('bilan, examen, compte rendu', () => {
     expect(isComplete(checkTp(tp, startTp(tp).getState(), p))).toBe(false);
     rateSelf(tp, p, 's10', 3);
     expect(isComplete(checkTp(tp, startTp(tp).getState(), p))).toBe(true);
-    expect(SELF_LEVELS[3]).toContain('expliquer');
+    expect(SELF_LEVELS[3]).toBe('excellente maîtrise');
   });
   it('examen : seule la dernière réponse compte', () => {
     const tp = tpById('TD1')!; const p = newProgress(); p.exam = true;

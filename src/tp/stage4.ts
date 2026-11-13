@@ -51,7 +51,7 @@ export const STAGE4: Tp[] = [
   {
     id: '4.1', num: '4.1', stage: 4, minutes: 35, dir: 'projet', title: 'Mini-projet : Terraform crée, Ansible configure',
     intention: 'Enchaîner les deux outils : l’inventaire d’Ansible est produit par une sortie de Terraform.',
-    skills: ['B2.2.6', 'B2.3.2'],
+    skills: ['B2.2'],
     bilan: 'Terraform décrit ce qui existe (machines, réseau) et le dit à Ansible ; Ansible décrit ce qu’il y a dedans. Aucun des deux ne fait le travail de l’autre.',
     brief: `Le projet doit créer la caisse (web) et le stock (base de données) en test, puis les configurer.\n\n1. Dans main.tf, ajoutez la machine « stock » et une sortie « inventaire » qui produit un inventaire Ansible (groupes web et bdd, adresse de chaque machine).\n2. terraform init, terraform apply.\n3. terraform output -raw inventaire > inventory.ini\n4. ansible-playbook -i inventory.ini site.yml (déjà écrit).`,
     files: { 'projet/main.tf': MAIN41, 'projet/site.yml': SITE4 },
@@ -72,7 +72,7 @@ export const STAGE4: Tp[] = [
   {
     id: '4.2', num: '4.2', stage: 4, minutes: 25, dir: 'projet', title: 'Changement et bonnes pratiques',
     intention: 'Faire évoluer l’infrastructure par le code, relire le plan, et garder les secrets hors du dépôt.',
-    skills: ['B2.2.5', 'B2.2.4'], myth: 'Supprimer un mot de passe du dépôt suffit.',
+    skills: ['B2.2', 'B3.4'], myth: 'Supprimer un mot de passe du dépôt suffit.',
     bilan: 'Chaque changement passe par le code, est relu dans le plan, puis versionné. L’état et les secrets restent hors du dépôt : un secret commité reste dans l’historique.',
     brief: `Le projet tourne en test. La direction demande : ouvrir le port 443 de la caisse et installer fail2ban sur la caisse.\n\nFaites-le par le code (règle de pare-feu dans main.tf, tâche apt dans site.yml). Lisez le plan avant d’appliquer.\n\nPuis versionnez : git init, créez un .gitignore qui exclut l’état Terraform (terraform.tfstate et sa sauvegarde) et le fichier de secrets (secrets.auto.tfvars), git add ., git commit -m "…". Vérifiez avec git status.`,
     files: { 'projet/main.tf': MAIN42, 'projet/site.yml': SITE4, 'projet/secrets.auto.tfvars': 'admin_password = "mot-de-passe-de-test"\n' },

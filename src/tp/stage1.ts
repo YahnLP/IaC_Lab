@@ -8,7 +8,7 @@ export const STAGE1: Tp[] = [
   {
     id: '1.1', num: '1.1', stage: 1, minutes: 25, dir: 'brasserie', title: 'Première ressource',
     intention: 'Dérouler init, validate, plan puis apply pour créer un réseau.',
-    skills: ['B2.2.1', 'B2.2.6'], myth: 'terraform apply recrée tout à chaque fois.',
+    skills: ['B2.2'], myth: 'terraform apply recrée tout à chaque fois.',
     bilan: 'Le cycle est toujours le même : init (préparer), validate (vérifier la syntaxe), plan (voir), apply (faire).',
     brief: `La Brasserie du Port a besoin d’un réseau « reseau-brasserie » en 203.0.113.0/24.\n\nDans main.tf, écrivez la ressource cloudpeda_network « principal » avec les attributs name et cidr. Puis, dans le terminal : terraform init, terraform validate, terraform plan, terraform apply.`,
     files: { 'brasserie/main.tf': `${PROV}\n# À vous : décrivez le réseau ici.\n` },
@@ -26,7 +26,7 @@ export const STAGE1: Tp[] = [
   {
     id: '1.2', num: '1.2', stage: 1, minutes: 20, dir: 'brasserie', title: 'Lire un plan, le modifier',
     intention: 'Prédire puis lire « ~ » (modification sur place) et « -/+ » (remplacement).',
-    skills: ['B2.2.5'],
+    skills: ['B2.2'],
     bilan: 'Toujours lire le plan avant de confirmer : un « -/+ » détruit et recrée, donc change l’identifiant et l’adresse IP.',
     brief: `La machine « caisse » est trop petite. Passez-la en size = "moyenne" dans main.tf, lancez terraform plan, lisez, puis apply. Notez que l’identifiant de la machine ne change pas.\n\nEnsuite, la direction veut Ubuntu : changez image = "ubuntu-24.04". Lisez le plan avant de confirmer.`,
     files: { 'brasserie/main.tf': `${PROV}\n${NET}\n${VM}` },
@@ -50,7 +50,7 @@ export const STAGE1: Tp[] = [
   {
     id: '1.3', num: '1.3', stage: 1, minutes: 15, dir: 'brasserie', title: 'Variables, locals, sorties',
     intention: 'Paramétrer un nom avec une variable et lire une valeur calculée avec une sortie.',
-    skills: ['B2.3.2'],
+    skills: ['B2.2'],
     bilan: 'Les variables rendent le même code réutilisable ; les sorties exposent ce que le fournisseur a calculé (adresse IP…).',
     brief: `Le nom de la machine doit dépendre de l’environnement. Ajoutez une variable « environnement » (valeur par défaut « test ») et nommez la machine "caisse-\${var.environnement}".\n\nAjoutez aussi une sortie « ip_caisse » qui affiche l’adresse IP de la machine. Appliquez, puis lisez la sortie.`,
     files: { 'brasserie/main.tf': `${PROV}\n${NET}\n${VM}` },
@@ -71,7 +71,7 @@ export const STAGE1: Tp[] = [
   {
     id: '1.4', num: '1.4', stage: 1, minutes: 20, dir: 'brasserie', title: 'Dépendances et destroy',
     intention: 'Voir l’ordre de création et de destruction suivre les références ; provoquer une dépendance circulaire.',
-    skills: ['B2.2.1'],
+    skills: ['B2.2'],
     bilan: 'Une référence crée une dépendance : on crée dans l’ordre des dépendances, on détruit dans l’ordre inverse.',
     brief: `Ajoutez une règle de pare-feu ouvrant le port 443 de la machine « caisse » (vm_id = cloudpeda_vm.caisse.id). Appliquez : observez l’ordre de création.\n\nPuis lancez terraform destroy et observez l’ordre inverse.\n\nBonus : dans le dossier « essai », deux ressources se référencent mutuellement. Placez-vous dedans (cd essai), puis terraform init et terraform validate.`,
     files: {
@@ -96,7 +96,7 @@ export const STAGE1: Tp[] = [
   {
     id: 'TD1', num: 'TD1', stage: 1, minutes: 10, dir: 'brasserie', title: 'Que fait ce plan ?',
     intention: 'Lire cinq plans et dire ce qui sera créé, modifié, détruit.',
-    skills: ['B2.2.5'],
+    skills: ['B2.2'],
     bilan: 'Le plan est un contrat : si vous savez le lire, rien de ce qui suit n’est une surprise.',
     brief: `Plan A :\n  + cloudpeda_vm.web\nPlan: 1 to add, 0 to change, 0 to destroy.\n\nPlan B :\n  ~ cloudpeda_vm.web\n      ~ size = "petite" -> "moyenne"\nPlan: 0 to add, 1 to change, 0 to destroy.\n\nPlan C :\n-/+ cloudpeda_vm.web (must be replaced)\n  ~ image = "debian-12" -> "ubuntu-24.04" # forces replacement\nPlan: 1 to add, 0 to change, 1 to destroy.\n\nPlan D :\n  - cloudpeda_firewall_rule.ssh\nPlan: 0 to add, 0 to change, 1 to destroy.\n\nPlan E :\nNo changes. Your infrastructure matches the configuration.`,
     files: { 'brasserie/main.tf': '' },

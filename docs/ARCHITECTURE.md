@@ -90,3 +90,12 @@ M2 Ansible ; M3 interface ; M4 moteur de TP et vérificateur ; M5 à M8 contenu,
 - Mode examen (case à cocher) : indices désactivés, pas de coches sur les objectifs, pas d'explication ni de bonne/mauvaise réponse affichée, pas de phrase de bilan. Le détail n'apparaît que dans le compte rendu.
 - `src/tp/report.ts` : compte rendu (objectifs atteints par TP, indices, essais aux questions, commandes, auto-évaluation) en JSON ou en HTML imprimable (texte échappé). Nom, classe et date saisis dans l'interface (la date n'entre jamais dans le moteur, qui reste déterministe).
 - Le pourcentage du compte rendu est un taux d'objectifs atteints, pas une note : aucune grille de notation n'est inventée.
+
+## Jalon M8 : accessibilité, documentation, « en vrai »
+
+- Interface : thèmes clair et sombre (préférence du système, mémorisée), lien d'évitement, panneau « Pourquoi ? » (`src/ui/why.ts`, pur), fenêtres « Ce que le simulateur simplifie » et « Maintenant en vrai » (`src/ui/info.ts`, source unique reprise dans `docs/`).
+- Audit `npm run a11y` (axe-core, WCAG 2.1 A/AA) sur écran principal, TP à questions, auto-évaluation, mode examen et les trois fenêtres, en thème clair et sombre : 0 violation. Limites : audit automatisé seulement.
+- Compétences : codes alignés sur le référentiel du site (B2.2, B2.3, B3.4). Niveaux d'auto-évaluation : vocabulaire des grilles nationales.
+- Documents générés (`npm run docs`, vérifiés par un test) : `couverture-competences.md`, `corriges.md`, `SIMPLIFICATIONS.md`, `EN-VRAI.md`.
+- CI et déploiement GitHub Pages : `.github/workflows/` (copiés d'InfraLab ; non exécutés tant que rien n'est poussé).
+- Non fait : coloration syntaxique de l'éditeur ; module Terraform ; thèmes plus nombreux.

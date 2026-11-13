@@ -1,11 +1,13 @@
 /** Interface : arborescence, éditeur, terminal et vue SVG. Tout le texte est inséré via textContent. */
 import type { Lab } from '../engine';
 import { CATALOG, tpById } from '../tp/catalog';
-import { SELF_LEVELS, answerQuestion, checkTp, exportSave, importSave, isComplete, nextHint, rateSelf, startTp, type Progress } from '../tp/engine';
+import { SELF_LEVELS, SELF_MEANING, answerQuestion, checkTp, exportSave, importSave, isComplete, nextHint, rateSelf, startTp, type Progress } from '../tp/engine';
 import type { Tp } from '../tp/types';
 import { buildReport, reportHtml, reportJson } from '../tp/report';
 import { buildView, shortType, type Status, type ViewItem } from './model';
+import { EN_VRAI, SIMPLIFICATIONS, type Section } from './info';
 import { Session } from './session';
+import { explain } from './why';
 
 const NS = 'http://www.w3.org/2000/svg';
 const COLOR: Record<Status, string> = { ok: 'var(--ok)', new: 'var(--new)', orphan: 'var(--bad)', unmanaged: 'var(--unm)' };
@@ -85,7 +87,7 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
     sel.value = tp.id;
     const para = (t: string, cls = ''): HTMLParagraphElement => { const p = document.createElement('p'); p.textContent = t; if (cls) p.className = cls; return p; };
     $('brief').replaceChildren(
-      para(`${tp.num} · ${tp.minutes} min · compétences (à valider) : ${tp.skills.join(', ')}`, 'mut'),
+      para(`${tp.num} · ${tp.minutes} min${tp.skills.length ? ` · compétences (à valider) : ${tp.skills.join(', ')}` : ''}`, 'mut'),
       para(tp.intention, 'mut'),
       ...(tp.myth ? [para(`Idée reçue : « ${tp.myth} »`, 'mut')] : []),
       ...tp.brief.split('\n\n').map(t => para(t)));
@@ -109,7 +111,7 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
       SELF_LEVELS.forEach((lv, i) => {
         const lab2 = document.createElement('label'); const r = document.createElement('input'); r.type = 'radio'; r.name = `self-${it.id}`; r.checked = progress.self[it.id] === i;
         r.addEventListener('change', () => { rateSelf(tp, progress, it.id, i); persist(); renderMission(); });
-        lab2.append(r, ` ${lv}`); f.appendChild(lab2);
+        lab2.title = SELF_MEANING[i] ?? ''; lab2.append(r, ` ${lv}`); f.appendChild(lab2);
       });
       sbox.appendChild(f);
     }
@@ -122,14 +124,17 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
     lab = next.lab; progress = next.progress; tp = tpById(next.tp) ?? CATALOG[0]!; sess = new Session(lab, tp.dir);
     current = null; ed.value = ''; ed.disabled = true; out.replaceChildren(); $('hint').textContent = ''; $<HTMLButtonElement>('save').disabled = true; $('edtitle').textContent = 'Éditeur';
     print(`${tp.num} — ${tp.title}. Tapez « help » pour la liste des commandes.`, 'info'); print('', '');
-    persist(); refresh(); const first = Object.keys(lab.getState().files).sort().find(f => f.endsWith('.tf') || f.endsWith('.yml')); if (first) openFile(first); cmd.focus();
+    persist(); refresh(); const first = Object.keys(lab.getState().files).sort().find(f => f.endsWith('.tf') || f.endsWith('.yml')); if (first) openFile(first);
   }
   function refresh(): void { renderMission(); renderTree(); drawView(); refreshPrompt(); }
 
   function run(line: string): void {
     print(`${sess.prompt}${line}`, 'in');
     if (line.trim() && !sess.pendingAnswer) history.push(line); hpos = history.length;
-    for (const l of sess.exec(line)) { if (l.text === '\f') out.replaceChildren(); else print(l.text, l.kind === 'out' ? '' : l.kind); }
+    const lines = sess.exec(line);
+    const w = explain(line, !lines.some(l => l.kind === 'err'), lines.map(l => l.text).join('\n'));
+    if (w && line.trim()) $('whytext').textContent = `${w.title} — ${w.text}`;
+    for (const l of lines) { if (l.text === '\f') out.replaceChildren(); else print(l.text, l.kind === 'out' ? '' : l.kind); }
     if (sess.openRequest) { openFile(sess.openRequest); sess.openRequest = null; }
     progress.commands[tp.id] = (progress.commands[tp.id] ?? 0) + (line.trim() ? 1 : 0);
     persist(); refresh();
@@ -151,6 +156,17 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
   $('tpsel').addEventListener('change', () => { const t = tpById($<HTMLSelectElement>('tpsel').value); if (t) load({ tp: t.id, lab: startTp(t), progress }); });
   $('restart').addEventListener('click', () => { if (confirm('Recommencer ce TP ? Votre travail dans ce TP sera effacé.')) { delete progress.done[tp.id]; load({ tp: tp.id, lab: startTp(tp), progress }); } });
   $('hintbtn').addEventListener('click', () => { if (progress.exam) return; const h = nextHint(tp, progress); $('hint').textContent = h ?? 'Plus d’indice : demandez à votre enseignant.'; persist(); });
+  const info = (title: string, secs: Section[]): void => {
+    $('infotitle').textContent = title;
+    $('infobody').replaceChildren(...secs.flatMap(x => { const h = document.createElement('h3'); h.textContent = x.title; const p = document.createElement('p'); p.textContent = x.text; return [h, p]; }));
+    $<HTMLDialogElement>('infodlg').showModal();
+  };
+  $('simplif').addEventListener('click', () => info('Ce que le simulateur simplifie', SIMPLIFICATIONS));
+  $('envrai').addEventListener('click', () => info('Maintenant en vrai (facultatif)', EN_VRAI));
+  const setTheme = (t: 'light' | 'dark'): void => { document.documentElement.dataset['theme'] = t; $('theme').textContent = t === 'light' ? 'Thème sombre' : 'Thème clair'; $('theme').setAttribute('aria-pressed', String(t === 'light')); try { localStorage.setItem('iaclab:theme', t); } catch { /* ignoré */ } };
+  let saved: string | null = null; try { saved = localStorage.getItem('iaclab:theme'); } catch { /* ignoré */ }
+  setTheme(saved === 'light' || (saved === null && window.matchMedia?.('(prefers-color-scheme: light)').matches) ? 'light' : 'dark');
+  $('theme').addEventListener('click', () => setTheme(document.documentElement.dataset['theme'] === 'light' ? 'dark' : 'light'));
   $('exam').addEventListener('change', () => { progress.exam = $<HTMLInputElement>('exam').checked; $('hint').textContent = progress.exam ? 'Mode examen : pas d’indices, pas de retour sur les réponses.' : ''; persist(); renderMission(); });
   const report = () => buildReport(CATALOG, progress, { tp: tp.id, state: lab.getState() }, { student: $<HTMLInputElement>('repname').value.trim(), group: $<HTMLInputElement>('repgroup').value.trim(), date: new Date().toLocaleDateString('fr-FR') });
   const download = (name: string, text: string, type: string): void => { const url = URL.createObjectURL(new Blob([text], { type })); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url); };

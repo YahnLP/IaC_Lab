@@ -45,7 +45,9 @@ export function answerQuestion(tp: Tp, progress: Progress, qid: string, choice: 
   return { ok, explain: q.explain };
 }
 
-export const SELF_LEVELS = ['pas encore', 'avec de l’aide', 'seul·e', 'je peux l’expliquer'] as const;
+/** Vocabulaire des grilles nationales d'évaluation, repris du référentiel du site (niveau 0 à 3). */
+export const SELF_LEVELS = ['non maîtrisé', 'maîtrise partielle', 'bonne maîtrise', 'excellente maîtrise'] as const;
+export const SELF_MEANING = ['Je ne sais pas encore le faire', 'Je sais le faire avec de l’aide', 'Je sais le faire seul, correctement', 'Je le fais seul, je l’explique et je peux l’adapter à un autre contexte'] as const;
 
 /** Enregistre un niveau d'auto-évaluation ; l'objectif « auto-évaluation complétée » se valide quand tout est renseigné. */
 export function rateSelf(tp: Tp, progress: Progress, itemId: string, level: number): void {

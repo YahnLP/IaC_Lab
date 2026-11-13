@@ -32,7 +32,7 @@ const MAP: Question[] = [
 export const STAGE5: Tp[] = [
   {
     id: '5.1', num: '5.1', stage: 5, minutes: 10, dir: 'bilan', title: 'Quiz de fin de parcours',
-    intention: 'Vérifier les notions des étapes 0 à 4 sur douze questions.', skills: ['B2.2.1', 'B2.2.4', 'B2.2.5', 'B2.2.6', 'B2.3.2', 'B2.3.5'],
+    intention: 'Vérifier les notions des étapes 0 à 4 sur douze questions.', skills: ['B2.2', 'B2.3'],
     bilan: 'Les erreurs repérées ici disent quels TP reprendre.',
     brief: 'Douze questions à choix. Chaque explication est affichée après la réponse (sauf en mode examen).',
     files: { 'bilan/.keep': '' }, objectives: [], questions: QUIZ, hints: ['Reprenez le TP concerné dans la liste.'],
@@ -40,7 +40,7 @@ export const STAGE5: Tp[] = [
   },
   {
     id: '5.2', num: '5.2', stage: 5, minutes: 5, dir: 'bilan', title: 'Quel outil pour quoi ?',
-    intention: 'Associer chaque besoin à l’outil qui le traite.', skills: ['B2.3.2'],
+    intention: 'Associer chaque besoin à l’outil qui le traite.', skills: ['B2.2'],
     myth: 'Terraform et Ansible font la même chose.',
     bilan: 'Terraform crée et décrit ce qui existe chez le fournisseur ; Ansible décrit ce qu’il y a dans les machines ; les deux s’enchaînent.',
     brief: 'Pour chaque besoin, choisissez : Terraform, Ansible, ou les deux à la suite.',
@@ -51,7 +51,7 @@ export const STAGE5: Tp[] = [
     id: '5.3', num: '5.3', stage: 5, minutes: 5, dir: 'bilan', title: 'Auto-évaluation',
     intention: 'Situer ses acquis, énoncé par énoncé.', skills: [],
     bilan: 'Votre auto-évaluation figure dans le compte rendu : elle sert de point de départ à la discussion avec l’enseignant.',
-    brief: 'Pour chaque énoncé, choisissez votre niveau, honnêtement : personne ne vous note là-dessus.',
+    brief: 'Pour chaque énoncé, choisissez votre niveau (vocabulaire des grilles nationales), honnêtement : cette auto-évaluation prépare l’examen, elle ne le remplace pas.',
     files: { 'bilan/.keep': '' }, objectives: [],
     selfEval: [
       { id: 's1', text: 'Je distingue un fichier déclaratif d’un script' },

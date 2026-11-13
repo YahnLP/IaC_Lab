@@ -31,7 +31,7 @@ export const STAGE3: Tp[] = [
   {
     id: '3.1', num: '3.1', stage: 3, minutes: 15, dir: 'config', title: 'Inventaire et ping',
     intention: 'Décrire des machines en groupes et vérifier qu’Ansible les joint.',
-    skills: ['B2.3.1'],
+    skills: ['B2.2'],
     bilan: 'L’inventaire dit sur qui agir ; sans lui, Ansible ne sait pas où aller. Un ping réussi prouve la jonction, pas la configuration.',
     brief: `Les machines « caisse » et « stock » existent déjà. Décrivez-les dans inventory.ini : « caisse » dans le groupe [web], « stock » dans le groupe [bdd].\n\nVérifiez : ansible web -m ping -i inventory.ini, puis ansible all -m ping -i inventory.ini.`,
     files: { 'config/inventory.ini': `# À vous : décrivez les groupes web et bdd.\n` },
@@ -47,7 +47,7 @@ export const STAGE3: Tp[] = [
   {
     id: '3.2', num: '3.2', stage: 3, minutes: 20, dir: 'config', title: 'Première tâche, idempotence',
     intention: 'Appliquer deux fois une tâche et lire « changed » puis « changed=0 ».',
-    skills: ['B2.3.2'], myth: 'Relancer un playbook refait tout à chaque fois.',
+    skills: ['B2.2'], myth: 'Relancer un playbook refait tout à chaque fois.',
     bilan: 'Un bon module est idempotent : il constate l’état voulu et n’agit que s’il manque quelque chose.',
     brief: `Complétez site.yml : une tâche qui installe nginx (module ansible.builtin.apt) sur le groupe web.\n\nLancez ansible-playbook -i inventory.ini site.yml. Relancez-le. Comparez les deux « PLAY RECAP ».`,
     files: { 'config/inventory.ini': INV, 'config/site.yml': `- name: Configurer les caisses\n  hosts: web\n  tasks: []\n` },
@@ -66,7 +66,7 @@ export const STAGE3: Tp[] = [
   {
     id: '3.3', num: '3.3', stage: 3, minutes: 25, dir: 'config', title: 'Playbook complet',
     intention: 'Combiner paquet, service, modèle et handler.',
-    skills: ['B2.2.1', 'B2.3.2'], myth: 'Terraform installe les logiciels dans la machine.',
+    skills: ['B2.2'], myth: 'Terraform installe les logiciels dans la machine.',
     bilan: 'Terraform crée la machine ; Ansible y installe et configure. Un handler ne s’exécute que si une tâche a réellement changé quelque chose.',
     brief: `La caisse doit servir une page d’accueil « Brasserie du Port - caisse ». Écrivez le playbook : installer nginx, le démarrer et l’activer, déposer templates/index.html.j2 (module template, destination /var/www/html/index.html). Faites notifier un handler qui recharge nginx quand la page change.\n\nLancez-le deux fois : le handler ne doit apparaître qu’au premier passage.`,
     files: { 'config/inventory.ini': INV, 'config/site.yml': `- name: Configurer les caisses\n  hosts: web\n  tasks: []\n`, 'config/templates/index.html.j2': PAGE },
@@ -84,7 +84,7 @@ export const STAGE3: Tp[] = [
   {
     id: '3.4', num: '3.4', stage: 3, minutes: 15, dir: 'config', title: '--check, --diff et dérive',
     intention: 'Détecter une modification manuelle sans rien changer, puis la corriger.',
-    skills: ['B2.3.5'],
+    skills: ['B2.3'],
     bilan: 'Avec --check --diff, on voit ce qui changerait avant de le faire. Une modification manuelle se détecte et se corrige en relançant le playbook.',
     brief: `La caisse est configurée. Un collègue modifie la page à la main : guest caisse write /var/www/html/index.html Page bidouillee, et arrête nginx : guest caisse stop nginx.\n\nDétectez l’écart sans rien modifier : ansible-playbook -i inventory.ini site.yml --check --diff. Puis corrigez en lançant le playbook sans --check.`,
     files: { 'config/inventory.ini': INV, 'config/site.yml': SITE, 'config/templates/index.html.j2': PAGE },
@@ -103,7 +103,7 @@ export const STAGE3: Tp[] = [
   {
     id: '3.5', num: '3.5', stage: 3, minutes: 10, dir: 'config', title: 'Le piège de « command »',
     intention: 'Comprendre pourquoi « command » casse l’idempotence et pourquoi --check ne le voit pas.',
-    skills: ['B2.3.2'], myth: '--check garantit que tout est idempotent.',
+    skills: ['B2.3'], myth: '--check garantit que tout est idempotent.',
     bilan: '« command » et « shell » ne savent pas ce qui existe : ils sont toujours « changed ». Préférez un module dédié, ou ajoutez creates.',
     brief: `Le playbook crée un marqueur avec « command ». Lancez-le deux fois : que dit le RECAP ? Lancez-le avec --check : que dit la tâche ?\n\nCorrigez-le pour qu’il devienne idempotent (module file, ou argument creates).`,
     files: { 'config/inventory.ini': INV, 'config/site.yml': `- name: Marqueur\n  hosts: web\n  tasks:\n    - name: Créer le marqueur\n      ansible.builtin.command: touch /tmp/marqueur\n` },
@@ -119,7 +119,7 @@ export const STAGE3: Tp[] = [
   {
     id: 'TD3', num: 'TD3', stage: 3, minutes: 5, dir: 'config', title: 'Que va faire ce playbook ?',
     intention: 'Prédire ok ou changed sur quatre cas.',
-    skills: ['B2.3.2'],
+    skills: ['B2.3'],
     bilan: 'Prédire le résultat avant de lancer, c’est comprendre ce que le module vérifie.',
     brief: `Toutes les machines partent d’une Debian toute neuve, sans nginx.\n\nCas A :\n  - apt: name=nginx state=present (premier passage)\n\nCas B :\n  - apt: name=nginx state=present (second passage)\n\nCas C :\n  - command: touch /tmp/x (second passage)\n\nCas D :\n  - copy: dest=/tmp/x content="a" puis la même tâche avec content="b"`,
     files: { 'config/inventory.ini': INV },

@@ -6,7 +6,7 @@ export const STAGE0: Tp[] = [
   {
     id: '0.1', num: '0.1', stage: 0, minutes: 15, dir: 'atelier', title: 'Monter, puis refaire à la main',
     intention: 'Constater qu’une infrastructure refaite à la main ne ressemble jamais tout à fait à la première.',
-    skills: ['B2.2.6'], myth: 'Une infrastructure bien documentée se refait à l’identique.',
+    skills: ['B2.2'], myth: 'Une infrastructure bien documentée se refait à l’identique.',
     bilan: 'Sans description écrite et relisible, la copie diffère de l’original et personne ne sait en quoi : c’est le problème que le code résout.',
     brief: `La Brasserie du Port a une machine « caisse » en production. Il faut en monter une copie de recette. Julien, parti en congés, a laissé la fiche « recette.txt ».\n\nSuivez la fiche en tapant ses commandes dans le terminal (cloud create …). Ensuite comparez recette et production avec « cloud list ».`,
     files: { 'atelier/recette.txt': `1. cloud create network name=reseau-recette cidr=198.51.100.0/24\n2. cloud create vm name=caisse-recette network_id=net-0002\n3. cloud create firewall_rule vm_id=vm-0002 port=22\n` },
@@ -34,7 +34,7 @@ export const STAGE0: Tp[] = [
   {
     id: '0.2', num: '0.2', stage: 0, minutes: 15, dir: 'atelier', title: 'Déclaratif ou impératif',
     intention: 'Distinguer « fais ceci » (script) et « je veux cela » (description) en les rejouant deux fois.',
-    skills: ['B2.3.2'], myth: 'Le code d’infrastructure est une liste d’étapes à suivre.',
+    skills: ['B2.2'], myth: 'Le code d’infrastructure est une liste d’étapes à suivre.',
     bilan: 'Un script décrit des actions et échoue ou duplique quand on le rejoue ; une description décrit un résultat et ne fait que ce qui manque.',
     brief: `Deux fichiers font la même chose : creer.sh (une suite de commandes) et main.tf (une description).\n\nLancez « bash creer.sh » deux fois. Puis « terraform init », « terraform apply » deux fois. Comparez ce qui se passe au second passage.`,
     files: {

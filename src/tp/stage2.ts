@@ -21,7 +21,7 @@ export const STAGE2: Tp[] = [
   {
     id: '2.1', num: '2.1', stage: 2, minutes: 15, dir: 'brasserie', title: 'Le fichier d’état',
     intention: 'Relier le code, l’état et le monde réel ; lire l’état avec state list et state show.',
-    skills: ['B2.2.4'], myth: 'Terraform retrouve ce qui existe en interrogeant le fournisseur à chaque fois.',
+    skills: ['B2.2'], myth: 'Terraform retrouve ce qui existe en interrogeant le fournisseur à chaque fois.',
     bilan: 'L’état est la mémoire de Terraform : il relie chaque bloc du code à un objet réel précis. Sans lui, Terraform ne sait plus ce qui lui appartient.',
     brief: `Le réseau et la machine de la Brasserie ont déjà été créés. Regardez la colonne « État » de la vue à droite.\n\nDans le terminal : terraform state list, puis terraform state show cloudpeda_vm.caisse. Ouvrez aussi terraform.tfstate dans l’éditeur.\n\nSans enregistrer de modification : répondez ensuite aux questions.`,
     files: { 'brasserie/main.tf': `${PROV}\n${NET}\n${VM}` },
@@ -38,7 +38,7 @@ export const STAGE2: Tp[] = [
   {
     id: '2.2', num: '2.2', stage: 2, minutes: 25, dir: 'brasserie', title: 'Provoquer la dérive',
     intention: 'Modifier le monde à la main, détecter l’écart sans rien changer, puis le corriger par le code.',
-    skills: ['B2.3.5'], myth: 'Si quelqu’un change la machine à la main, Terraform le sait tout de suite.',
+    skills: ['B2.3'], myth: 'Si quelqu’un change la machine à la main, Terraform le sait tout de suite.',
     bilan: 'Un changement à la main crée une dérive que seul un plan fait apparaître. La bonne correction est dans le code ; sinon l’écart revient.',
     brief: `J’anticipe : un collègue « dépanne » en changeant la taille de la machine à la main. Faites-le : cloud set vm-0001 size grande.\n\nDétectez l’écart sans rien modifier : terraform plan -refresh-only. Puis remettez le monde d’aplomb avec le code (terraform apply).`,
     files: { 'brasserie/main.tf': `${PROV}\n${NET}\n${VM}` },
@@ -56,7 +56,7 @@ export const STAGE2: Tp[] = [
   {
     id: '2.3', num: '2.3', stage: 2, minutes: 20, dir: 'test', title: 'Test puis production',
     intention: 'Utiliser les mêmes fichiers avec des valeurs différentes pour deux environnements.',
-    skills: ['B2.2.5', 'B2.2.6'],
+    skills: ['B2.2'],
     bilan: 'Le code est le même ; ce qui change, ce sont les valeurs. Un nom en doublon ou une valeur recopiée par erreur se voit dès le plan ou l’apply.',
     brief: `Deux dossiers, « test » et « prod », contiennent le même main.tf. Seul terraform.tfvars diffère (les valeurs de l’environnement).\n\nDans « test » : terraform init puis apply. Puis cd ../prod, init, apply. L’apply de prod échoue : lisez le message, corrigez le fichier de valeurs, relancez.`,
     files: {
