@@ -1,7 +1,7 @@
 /** Moteur de TP : démarrage reproductible, vérification des objectifs, progression, sauvegarde. */
 import { createLab, type Lab } from '../engine';
 import type { State } from '../state';
-import type { Objective, Question, Tp } from './types';
+import type { Objective, Question, Step, Tp } from './types';
 
 export interface Progress {
   /** Objectifs déjà validés (conservés même si l'état change ensuite). */
@@ -14,10 +14,14 @@ export interface Progress {
   answers: Record<string, Record<string, { choice: number; tries: number }>>;
   /** Auto-évaluation : énoncé → niveau de 0 (pas encore) à 3 (je peux l'expliquer). */
   self: Record<string, number>;
+  /** Étape courante par TP (parcours guidé). */
+  step: Record<string, number>;
+  /** Commandes tapées par TP (les 200 dernières), pour valider « tape cette commande ». */
+  ran: Record<string, string[]>;
   /** Mode examen : sans indices ni retour sur les réponses. */
   exam: boolean;
 }
-export const newProgress = (): Progress => ({ done: {}, hints: {}, commands: {}, answers: {}, self: {}, exam: false });
+export const newProgress = (): Progress => ({ done: {}, hints: {}, commands: {}, answers: {}, self: {}, step: {}, ran: {}, exam: false });
 
 /** Crée un laboratoire neuf prêt pour le TP : fichiers de départ puis préparation du monde. */
 export function startTp(tp: Tp): Lab {
@@ -46,6 +50,19 @@ export function answerQuestion(tp: Tp, progress: Progress, qid: string, choice: 
 }
 
 /** Vocabulaire des grilles nationales d'évaluation, repris du référentiel du site (niveau 0 à 3). */
+export function recordCommand(progress: Progress, tpId: string, line: string): void {
+  const l = line.trim(); if (!l) return;
+  const log = (progress.ran[tpId] ??= []); log.push(l); if (log.length > 200) log.splice(0, log.length - 200);
+}
+
+/** Une étape est terminée quand sa condition est remplie ; sans condition, l'élève avance quand il veut. */
+export function stepDone(step: Step, progress: Progress, tpId: string): boolean {
+  const u = step.until; if (!u) return true;
+  if (u.done !== undefined && !(progress.done[tpId] ?? []).includes(u.done)) return false;
+  if (u.ran !== undefined) { const re = new RegExp(u.ran); if (!(progress.ran[tpId] ?? []).some(l => re.test(l))) return false; }
+  return true;
+}
+
 export const SELF_LEVELS = ['non maîtrisé', 'maîtrise partielle', 'bonne maîtrise', 'excellente maîtrise'] as const;
 export const SELF_MEANING = ['Je ne sais pas encore le faire', 'Je sais le faire avec de l’aide', 'Je sais le faire seul, correctement', 'Je le fais seul, je l’explique et je peux l’adapter à un autre contexte'] as const;
 
@@ -96,5 +113,5 @@ export function importSave(text: string): { tp: string; lab: Lab; progress: Prog
   const lab = createLab();
   lab.restore(f.journal);
   const p = f.progress ?? newProgress();
-  return { tp: f.tp, lab, progress: { done: p.done ?? {}, hints: p.hints ?? {}, commands: p.commands ?? {}, answers: p.answers ?? {}, self: p.self ?? {}, exam: p.exam === true } };
+  return { tp: f.tp, lab, progress: { done: p.done ?? {}, hints: p.hints ?? {}, commands: p.commands ?? {}, answers: p.answers ?? {}, self: p.self ?? {}, step: p.step ?? {}, ran: p.ran ?? {}, exam: p.exam === true } };
 }

@@ -4,15 +4,24 @@
 
 > Attention : ce fichier donne les solutions. S’il se trouve dans un dépôt public, les élèves peuvent le lire.
 
+## 0.0 — Prise en main du simulateur
+
+*Idée reçue visée :* —
+
+1. Question « Où tape-t-on les commandes ? » : **Dans le terminal, au centre en bas**
+
+*Phrase de bilan :* Tu sais lire la consigne, ouvrir un fichier, taper une commande et lire le schéma : tu peux commencer.
+
 ## 0.1 — Monter, puis refaire à la main
 
 *Idée reçue visée :* Une infrastructure bien documentée se refait à l’identique.
 
-1. Terminal : `cloud create network name=reseau-recette cidr=198.51.100.0/24`
-2. Terminal : `cloud create vm name=caisse-recette network_id=net-0002`
-3. Terminal : `cloud create firewall_rule vm_id=vm-0002 port=22`
-4. Question « Que montre la comparaison entre la production et la recette ? » : **Il manque la règle du port 443 en recette, et la fiche ne la mentionnait pas**
-5. Terminal : `cloud create firewall_rule vm_id=vm-0002 port=443`
+1. Terminal : `cloud list`
+2. Terminal : `cloud create network name=reseau-recette cidr=198.51.100.0/24`
+3. Terminal : `cloud create vm name=caisse-recette network_id=net-0002`
+4. Terminal : `cloud create firewall_rule vm_id=vm-0002 port=22`
+5. Question « Que montre la comparaison entre la production et la recette ? » : **Il manque la règle du port 443 en recette, et la fiche ne la mentionnait pas**
+6. Terminal : `cloud create firewall_rule vm_id=vm-0002 port=443`
 
 *Phrase de bilan :* Sans description écrite et relisible, la copie diffère de l’original et personne ne sait en quoi : c’est le problème que le code résout.
 
@@ -24,9 +33,10 @@
 2. Terminal : `bash creer.sh`
 3. Question « Que se passe-t-il quand on rejoue le script ? » : **Les commandes échouent : les objets existent déjà**
 4. Terminal : `terraform init`
-5. Terminal : `terraform apply -auto-approve`
-6. Terminal : `terraform apply -auto-approve`
-7. Question « Et au second « terraform apply » ? » : **Il constate que le monde correspond déjà à la description (« No changes »)**
+5. Terminal : `terraform apply`
+6. Terminal : `yes`
+7. Terminal : `terraform apply`
+8. Question « Et au second « terraform apply » ? » : **Il constate que le monde correspond déjà à la description (« No changes »)**
 
 *Phrase de bilan :* Un script décrit des actions et échoue ou duplique quand on le rejoue ; une description décrit un résultat et ne fait que ce qui manque.
 

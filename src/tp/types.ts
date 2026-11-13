@@ -21,6 +21,26 @@ export type SolutionStep =
   | { run: string }
   | { answer: string };
 
+/** Une action concrète demandée à l'élève dans une étape. */
+export type Action =
+  | { cmd: string; note: string }                          // à taper dans le terminal
+  | { open: string; note: string }                         // à ouvrir dans l'éditeur
+  | { insert: { path: string; text: string }; note: string } // extrait de code à ajouter à un fichier
+
+/** Une étape guidée : pourquoi, quoi faire, quoi observer, comment savoir que c'est fait. */
+export interface Step {
+  title: string;
+  /** Contexte et explication, en phrases courtes (paragraphes séparés par une ligne vide). */
+  learn: string;
+  do?: Action[];
+  /** Ce qu'on doit voir si tout se passe bien. */
+  expect?: string;
+  /** Questions posées dans cette étape (identifiants). */
+  ask?: string[];
+  /** Quand l'étape est terminée : un objectif validé (`done`), ou une commande tapée (`ran`, expression régulière). */
+  until?: { done?: string; ran?: string };
+}
+
 export interface Tp {
   id: string;
   stage: number;
@@ -37,6 +57,8 @@ export interface Tp {
   /** Phrase de bilan affichée à la réussite. */
   bilan: string;
   questions?: Question[];
+  /** Parcours guidé pas à pas. Sans étapes, la consigne `brief` est affichée telle quelle. */
+  steps?: Step[];
   /** Auto-évaluation : une échelle de 0 à 3 par énoncé. */
   selfEval?: SelfItem[];
   solution: SolutionStep[];

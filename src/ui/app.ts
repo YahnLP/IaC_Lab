@@ -1,7 +1,7 @@
 /** Interface : arborescence, éditeur, terminal et vue SVG. Tout le texte est inséré via textContent. */
 import type { Lab } from '../engine';
 import { CATALOG, tpById } from '../tp/catalog';
-import { SELF_LEVELS, SELF_MEANING, answerQuestion, checkTp, exportSave, importSave, isComplete, nextHint, rateSelf, startTp, type Progress } from '../tp/engine';
+import { SELF_LEVELS, SELF_MEANING, answerQuestion, checkTp, exportSave, importSave, isComplete, nextHint, rateSelf, recordCommand, startTp, stepDone, type Progress } from '../tp/engine';
 import type { Tp } from '../tp/types';
 import { buildReport, reportHtml, reportJson } from '../tp/report';
 import { buildView, shortType, type Status, type ViewItem } from './model';
@@ -11,6 +11,7 @@ import { explain } from './why';
 
 const NS = 'http://www.w3.org/2000/svg';
 const COLOR: Record<Status, string> = { ok: 'var(--ok)', new: 'var(--new)', orphan: 'var(--bad)', unmanaged: 'var(--unm)' };
+const EMPTY = ['Rien d’écrit pour l’instant.', 'Terraform n’a rien noté.', 'Rien n’existe encore.'];
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
 export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hooks: { save(text: string): void; reset(): void }): void {
@@ -70,6 +71,7 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
     cols.forEach(([title, items], c) => {
       const x = c * (W + GAP); const t = document.createElementNS(NS, 'text'); t.setAttribute('x', String(x)); t.setAttribute('y', '14'); t.setAttribute('class', 'mut'); t.textContent = title; svg.appendChild(t);
       let y = 24;
+      if (!items.length) { const e = document.createElementNS(NS, 'text'); e.setAttribute('x', String(x)); e.setAttribute('y', '40'); e.setAttribute('class', 'mut empty'); e.textContent = EMPTY[c] ?? ''; svg.appendChild(e); }
       for (const it of items) { box(svg, x, y, W, it); pos.set(`${c}:${it.key}`, { x: x + W, y: y + 11 }); y += 22 + it.detail.length * 14 + 10; }
     });
     const arrow = (a: { x: number; y: number } | undefined, b: { x: number; y: number } | undefined): void => {
@@ -86,15 +88,58 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
     if (!sel.options.length) for (const t of CATALOG) { const o = document.createElement('option'); o.value = t.id; o.textContent = `${t.num} — ${t.title}`; sel.appendChild(o); }
     sel.value = tp.id;
     const para = (t: string, cls = ''): HTMLParagraphElement => { const p = document.createElement('p'); p.textContent = t; if (cls) p.className = cls; return p; };
-    $('brief').replaceChildren(
+    const head = [
       para(`${tp.num} · ${tp.minutes} min${tp.skills.length ? ` · compétences (à valider) : ${tp.skills.join(', ')}` : ''}`, 'mut'),
       para(tp.intention, 'mut'),
-      ...(tp.myth ? [para(`Idée reçue : « ${tp.myth} »`, 'mut')] : []),
-      ...tp.brief.split('\n\n').map(t => para(t)));
+      ...(tp.myth ? [para(`Idée reçue : « ${tp.myth} »`, 'mut')] : [])];
     const res = checkTp(tp, lab.getState(), progress);
+    const steps = tp.steps;
+    if (!steps) $('brief').replaceChildren(...head, ...tp.brief.split('\n\n').map(t => para(t)));
+    else {
+      const n = Math.min(progress.step[tp.id] ?? 0, steps.length - 1); const st = steps[n]!;
+      const go = (d: number): void => { progress.step[tp.id] = n + d; persist(); renderMission(); };
+      const box = document.createElement('div'); box.className = 'step';
+      const h = document.createElement('h3'); h.textContent = `Étape ${n + 1} sur ${steps.length} — ${st.title}`; box.appendChild(h);
+      const lh = document.createElement('h4'); lh.textContent = 'Pour comprendre'; box.appendChild(lh);
+      for (const t of st.learn.split('\n\n')) box.appendChild(para(t));
+      if (st.do?.length) {
+        const dh = document.createElement('h4'); dh.textContent = 'À faire'; box.appendChild(dh);
+        const ul = document.createElement('ul'); ul.className = 'actions';
+        for (const a of st.do) {
+          const li = document.createElement('li'); li.appendChild(para(a.note));
+          const b = document.createElement('button'); b.type = 'button';
+          if ('cmd' in a) {
+            const code = document.createElement('code'); code.textContent = a.cmd; li.appendChild(code);
+            b.textContent = 'Mettre dans le terminal'; b.addEventListener('click', () => { cmd.value = a.cmd; cmd.focus(); });
+          } else if ('open' in a) {
+            b.textContent = `Ouvrir ${a.open.slice(a.open.lastIndexOf('/') + 1)}`; b.addEventListener('click', () => openFile(a.open));
+          } else {
+            const pre = document.createElement('pre'); pre.textContent = a.insert.text; li.appendChild(pre);
+            b.textContent = `Ajouter à ${a.insert.path.slice(a.insert.path.lastIndexOf('/') + 1)}`;
+            b.addEventListener('click', () => { const cur = lab.getState().files[a.insert.path] ?? ''; lab.dispatch('fs.write', { path: a.insert.path, content: `${cur.replace(/\s*$/, '')}\n\n${a.insert.text}` }); openFile(a.insert.path); persist(); refresh(); });
+          }
+          li.appendChild(b); ul.appendChild(li);
+        }
+        box.appendChild(ul);
+      }
+      if (st.expect) { const eh = document.createElement('h4'); eh.textContent = 'Tu devrais voir'; box.appendChild(eh); box.appendChild(para(st.expect)); }
+      if (st.ask?.length) box.appendChild(para('Réponds à la question ci-dessous.', 'mut'));
+      const done = stepDone(st, progress, tp.id);
+      const nav = document.createElement('div'); nav.className = 'stepnav';
+      const prev = document.createElement('button'); prev.type = 'button'; prev.textContent = 'Précédent'; prev.disabled = n === 0; prev.addEventListener('click', () => go(-1));
+      const next = document.createElement('button'); next.type = 'button'; next.textContent = n === steps.length - 1 ? 'Dernière étape' : 'Suivant'; next.disabled = !done || n === steps.length - 1; next.addEventListener('click', () => go(1));
+      nav.append(prev, next);
+      if (!done && n < steps.length - 1) { const skip = document.createElement('button'); skip.type = 'button'; skip.className = 'link'; skip.textContent = 'Passer cette étape'; skip.addEventListener('click', () => go(1)); nav.appendChild(skip); }
+      box.appendChild(nav);
+      if (!done) box.appendChild(para('Le bouton « Suivant » s’active quand cette étape est faite.', 'mut'));
+      $('brief').replaceChildren(...head, box);
+    }
     $('objs').replaceChildren(...res.filter(r => !r.objective.id.startsWith('q:')).map(r => { const li = document.createElement('li'); li.textContent = `${progress.exam ? '•' : r.ok ? '✔' : '○'} ${r.objective.label}`; li.className = progress.exam ? '' : `${r.ok ? 'ok' : ''} ${r.sticky ? 'sticky' : ''}`.trim(); return li; }));
     const qbox = $('quest'); qbox.replaceChildren();
-    for (const q of tp.questions ?? []) {
+    const curStep = tp.steps ? tp.steps[Math.min(progress.step[tp.id] ?? 0, tp.steps.length - 1)] : undefined;
+    const lastStep = !tp.steps || (progress.step[tp.id] ?? 0) >= tp.steps.length - 1;
+    $('objs').hidden = !lastStep; $('objstitle').hidden = !lastStep;
+    for (const q of (tp.questions ?? []).filter(q => !curStep || curStep.ask?.includes(q.id))) {
       const field = document.createElement('fieldset'); const lg = document.createElement('legend');
       const okQ = res.find(r => r.objective.id === `q:${q.id}`)?.ok ?? false; lg.textContent = `${okQ && !progress.exam ? '✔ ' : ''}${q.prompt}`; field.appendChild(lg);
       const fb = document.createElement('div'); fb.setAttribute('role', 'status');
@@ -136,6 +181,7 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
     if (w && line.trim()) $('whytext').textContent = `${w.title} — ${w.text}`;
     for (const l of lines) { if (l.text === '\f') out.replaceChildren(); else print(l.text, l.kind === 'out' ? '' : l.kind); }
     if (sess.openRequest) { openFile(sess.openRequest); sess.openRequest = null; }
+    if (line.trim()) recordCommand(progress, tp.id, line.trim());
     progress.commands[tp.id] = (progress.commands[tp.id] ?? 0) + (line.trim() ? 1 : 0);
     persist(); refresh();
     if (current && lab.getState().files[current] !== undefined && document.activeElement !== ed) ed.value = lab.getState().files[current]!, gutter();

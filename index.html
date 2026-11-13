@@ -16,11 +16,11 @@ header span{margin-right:auto}#examlbl{font-size:13px}dialog{background:var(--pa
 button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer;font:inherit}
 button:hover,button:focus-visible{border-color:var(--acc)}
 :focus-visible{outline:2px solid var(--acc);outline-offset:1px}
-main{flex:1;display:grid;grid-template-columns:270px 1.35fr 1fr;grid-template-rows:1fr 1fr;grid-template-areas:"files editor view" "files term view";gap:1px;background:var(--line);min-height:0}
+main{flex:1;display:grid;grid-template-columns:380px 1.2fr 1.1fr;grid-template-rows:1fr 1fr;grid-template-areas:"files editor view" "files term view";gap:1px;background:var(--line);min-height:0}
 section{background:var(--panel);display:flex;flex-direction:column;min-height:0;min-width:0}
 section>h2{margin:0;padding:6px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);background:var(--panel2)}
 #files{grid-area:files}#editor{grid-area:editor}#term{grid-area:term}#view{grid-area:view}
-#mission{padding:8px 10px;overflow:auto;max-height:62%;font-size:13px}
+#mission{padding:8px 12px;overflow:auto;flex:1;font-size:14px;line-height:1.45}#files #tree{max-height:84px;flex:none}.step{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:6px 0;background:var(--panel2)}.step h3{margin:0 0 4px;font-size:14px}.step h4,#objstitle{margin:8px 0 2px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--acc)}.actions{list-style:none;padding:0;margin:0}.actions li{margin:6px 0;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}.actions li p{margin:0 0 4px}.actions code,.actions pre{display:block;font:13px ui-monospace,monospace;background:var(--termbg);padding:4px 6px;border-radius:4px;margin:0 0 4px;white-space:pre-wrap;overflow-wrap:anywhere}.stepnav{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}button.link{border:0;background:none;color:var(--mut);text-decoration:underline}#schemahelp{padding:6px 10px;font-size:13px;line-height:1.4;border-bottom:1px solid var(--line)}#schemahelp dt{font-weight:600;margin-top:4px}#schemahelp dd{margin:0 0 0 0;color:var(--mut)}.empty{fill:var(--mut);font-style:italic}
 #mission select{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:4px;margin:2px 0 6px}
 #brief p{margin:0 0 6px;white-space:pre-wrap}#objs{list-style:none;padding:0;margin:6px 0}#objs li{padding:2px 0}#objs li.ok{color:var(--ok)}#objs li.sticky::after{content:" (validé plus tôt)";color:var(--mut);font-size:11px}
 #quest fieldset{border:1px solid var(--line);border-radius:6px;margin:6px 0;padding:6px}#quest legend{font-size:12px;padding:0 4px}#quest button{display:block;width:100%;text-align:left;margin:3px 0;font-size:12px}#quest [role=status]{font-size:12px;color:var(--mut)}
@@ -60,7 +60,7 @@ svg text{font:12px system-ui,sans-serif;fill:var(--txt)}svg .mut{fill:var(--mut)
 <main>
 <section id="files" aria-label="Mission et fichiers"><h2>Mission</h2>
 <div id="mission"><label for="tpsel" class="mut">TP</label><select id="tpsel"></select><div id="brief"></div>
-<ul id="objs" aria-label="Objectifs"></ul><div id="quest"></div><div id="self"></div><div id="hint" role="status"></div>
+<h4 id="objstitle">Ce que tu dois avoir obtenu</h4><ul id="objs" aria-label="Objectifs"></ul><div id="quest"></div><div id="self"></div><div id="hint" role="status"></div>
 <div id="mbtns"><button id="hintbtn" type="button">Indice</button><button id="restart" type="button">Recommencer</button><button id="export" type="button">Exporter</button><button id="import" type="button">Importer</button><input id="file" type="file" accept="application/json,.json" hidden></div></div>
 <h2>Fichiers</h2><ul id="tree"></ul></section>
 <section id="editor" aria-label="Éditeur"><h2 id="edtitle">Éditeur</h2>
@@ -69,7 +69,7 @@ svg text{font:12px system-ui,sans-serif;fill:var(--txt)}svg .mut{fill:var(--mut)
 <section id="term" aria-label="Terminal"><h2>Terminal</h2><div id="out" role="log" aria-live="polite" aria-label="Sortie du terminal" tabindex="0"></div>
 <details id="why"><summary>Pourquoi ?</summary><p id="whytext">Lancez une commande : une explication apparaît ici.</p></details>
 <div id="cmdrow"><span id="prompt"></span><input id="cmd" autocomplete="off" spellcheck="false" aria-label="Ligne de commande"></div></section>
-<section id="view" aria-label="Vue code, état, monde"><h2>Code → État → Monde réel</h2><div id="svgwrap"></div>
+<section id="view" aria-label="Vue code, état, monde"><h2>Code → État → Monde réel</h2><dl id="schemahelp"><dt>Code (.tf)</dt><dd>Ce que tu as écrit dans tes fichiers .tf : la liste de ce que tu veux.</dd><dt>État (tfstate)</dt><dd>Le carnet de notes de Terraform : ce qu'il a déjà créé, avec son identifiant.</dd><dt>Monde réel</dt><dd>Ce qui existe vraiment chez le fournisseur, que Terraform l'ait créé ou non.</dd></dl><div id="svgwrap"></div>
 <div id="legend"><span><i class="sw" style="background:var(--ok)"></i>synchronisé</span><span><i class="sw" style="background:var(--new)"></i>à créer</span><span><i class="sw" style="background:var(--bad)"></i>orphelin (plus dans le code)</span><span><i class="sw" style="background:var(--unm)"></i>hors Terraform</span></div></section>
 </main>
 <script type="module" src="/src/main.ts"></script>

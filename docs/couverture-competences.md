@@ -8,6 +8,7 @@ Les codes sont ceux du [référentiel du site](https://github.com/YahnLP/BTS-SIO
 
 | TP | Titre | Durée estimée | Compétences |
 |---|---|---|---|
+| 0.0 | Prise en main du simulateur | 5 min | — |
 | 0.1 | Monter, puis refaire à la main | 15 min | B2.2 |
 | 0.2 | Déclaratif ou impératif | 15 min | B2.2 |
 | 1.1 | Première ressource | 25 min | B2.2 |
@@ -67,12 +68,12 @@ Les codes sont ceux du [référentiel du site](https://github.com/YahnLP/BTS-SIO
 
 | Étape | Titre | Durée |
 |---|---|---|
-| 0 | Pourquoi décrire l’infrastructure en code | 0 h 30 |
+| 0 | Pourquoi décrire l’infrastructure en code | 0 h 35 |
 | 1 | Provisionner (Terraform) | 1 h 30 |
 | 2 | L’état et la dérive | 1 h 00 |
 | 3 | Configurer (Ansible) | 1 h 30 |
 | 4 | Les deux ensemble | 1 h 00 |
 | 5 | Bilan | 0 h 20 |
-| | **Total** | **5 h 50** |
+| | **Total** | **5 h 55** |
 
 Les durées sont des estimations d’auteur, à ajuster après un essai avec des élèves.

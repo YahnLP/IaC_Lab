@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG, tpById } from '../../src/tp/catalog';
-import { SELF_LEVELS, answerQuestion, checkTp, rateSelf, exportSave, importSave, isComplete, newProgress, nextHint, startTp } from '../../src/tp/engine';
+import { SELF_LEVELS, answerQuestion, checkTp, rateSelf, exportSave, importSave, isComplete, newProgress, nextHint, recordCommand, startTp, stepDone } from '../../src/tp/engine';
 import type { Tp } from '../../src/tp/types';
 import { Session } from '../../src/ui/session';
 
@@ -31,13 +31,42 @@ describe.each(CATALOG.map(t => [t.id, t] as const))('TP %s', (_id, tp) => {
   });
   it('les textes sont complets', () => {
     expect(tp.intention.length).toBeGreaterThan(20); expect(tp.bilan.length).toBeGreaterThan(20);
-    if (!tp.selfEval) { expect(tp.hints.length).toBeGreaterThan(0); expect(tp.skills.length).toBeGreaterThan(0); }
+    if (!tp.selfEval) { expect(tp.hints.length).toBeGreaterThan(0); if (tp.id !== '0.0') expect(tp.skills.length).toBeGreaterThan(0); }
     for (const q of tp.questions ?? []) { expect(q.choices[q.correct]).toBeDefined(); expect(q.choices.length).toBeGreaterThanOrEqual(3); }
   });
   it('la vérification ne modifie pas l’état', () => {
     const { lab, p } = solve(tp);
     const before = JSON.stringify(lab.getState()); checkTp(tp, lab.getState(), p);
     expect(JSON.stringify(lab.getState())).toBe(before);
+  });
+});
+
+describe.each(CATALOG.filter(t => t.steps).map(t => [t.id, t] as const))('parcours guidé %s', (_id, tp) => {
+  it('suivre chaque action à la lettre mène à 100 %, et chaque étape se termine', () => {
+    const lab = startTp(tp); const s = new Session(lab, tp.dir); const p = newProgress();
+    checkTp(tp, lab.getState(), p);
+    for (const [i, st] of tp.steps!.entries()) {
+      for (const a of st.do ?? []) {
+        if ('cmd' in a) { s.exec(a.cmd); recordCommand(p, tp.id, a.cmd); }
+        else if ('insert' in a) { const cur = lab.getState().files[a.insert.path] ?? ''; lab.dispatch('fs.write', { path: a.insert.path, content: `${cur.replace(/\s*$/, '')}\n\n${a.insert.text}` }); }
+        else expect(lab.getState().files[a.open], `étape ${i + 1} : fichier à ouvrir introuvable`).toBeDefined();
+        checkTp(tp, lab.getState(), p);
+      }
+      for (const qid of st.ask ?? []) { const q = tp.questions!.find(x => x.id === qid)!; expect(q, `question ${qid}`).toBeDefined(); answerQuestion(tp, p, qid, q.correct); }
+      checkTp(tp, lab.getState(), p);
+      expect(stepDone(st, p, tp.id), `étape ${i + 1} « ${st.title} » non terminée`).toBe(true);
+    }
+    for (const it of tp.selfEval ?? []) rateSelf(tp, p, it.id, 2);
+    const res = checkTp(tp, lab.getState(), p);
+    expect(res.filter(r => !r.ok).map(r => r.objective.label)).toEqual([]);
+  });
+  it('les conditions des étapes sont valides', () => {
+    const ids = new Set([...tp.objectives.map(o => o.id), ...(tp.questions ?? []).map(q => `q:${q.id}`)]);
+    for (const st of tp.steps!) {
+      if (st.until?.done !== undefined) expect(ids.has(st.until.done), st.until.done).toBe(true);
+      if (st.until?.ran !== undefined) expect(() => new RegExp(st.until!.ran!)).not.toThrow();
+      for (const q of st.ask ?? []) expect((tp.questions ?? []).some(x => x.id === q), q).toBe(true);
+    }
   });
 });
 
@@ -49,7 +78,7 @@ describe('scénarios', () => {
   it('0.2 : le script échoue au second passage, Terraform ne fait rien', () => {
     const { log } = solve(tpById('0.2')!);
     expect(log[1]).toMatch(/Erreur|already exists/);
-    expect(log[4]).toContain('No changes');
+    expect(log[5]).toContain('No changes');
   });
   it('1.2 : « ~ » puis « -/+ »', () => {
     const { log } = solve(tpById('1.2')!);
