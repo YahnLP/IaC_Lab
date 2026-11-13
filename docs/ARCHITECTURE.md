@@ -73,3 +73,12 @@ M2 Ansible ; M3 interface ; M4 moteur de TP et vérificateur ; M5 à M8 contenu,
 - Nouveautés du terminal : `bash <fichier>` (script de lignes `cloud create …`), `cloud list`, `cloud create`.
 - Séquences d'objectifs : `check(st, done)` permet d'exiger qu'un objectif précède un autre (ex. « remis en conformité » après « dérive provoquée »).
 - Test / production : dossiers séparés, même `main.tf`, `terraform.tfvars` différent (pas de workspaces, décision d'auteur).
+
+## Jalon M6 : étapes 3 et 4
+
+- `src/tp/stage3.ts` : 3.1 à 3.5 et TD3 (Ansible : inventaire, idempotence, playbook complet avec handler, --check/--diff et dérive, piège de `command`).
+- `src/tp/stage4.ts` : 4.1 (Terraform produit l'inventaire d'Ansible par une sortie) et 4.2 (changement par le code, plan relu, Git, secrets hors dépôt).
+- Nouveautés du terminal : redirection `>` / `>>`, `guest <machine> write|cat|stop|start|status` (agir à la main dans une machine), `git init|add|commit|status|log`.
+- `src/shell/git.ts` : Git simulé (instantanés dans `.git/repo.json`, `.gitignore` simple : nom exact, `*.ext`, `dossier/`). Les vérificateurs lisent le dernier commit.
+- Vérificateur `playbookIdempotent` : rejoue le playbook deux fois sur une copie de l'état et exige `changed=0` au second passage.
+- Simplifications : pas de rôles, pas de branches Git ni de dépôt distant, `git add` instantané du contenu.

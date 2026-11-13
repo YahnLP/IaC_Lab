@@ -27,3 +27,12 @@ export const VM = `resource "cloudpeda_vm" "caisse" {
   network_id = cloudpeda_network.principal.id
 }
 `;
+
+/** Monde de l'étape 3 : un réseau et deux machines (caisse en .10, stock en .11), toutes deux en Debian 12 de base. */
+export const WORLD3: SetupCommand[] = [
+  cloud('network', { name: 'reseau-brasserie', cidr: '203.0.113.0/24' }),
+  cloud('vm', { name: 'caisse', network_id: 'net-0001' }),
+  cloud('vm', { name: 'stock', network_id: 'net-0001' }),
+];
+export const INV = `[web]\ncaisse\n\n[bdd]\nstock\n\n[all:vars]\nansible_become=true\n`;
+export const ans = (dir: string, line: string): SetupCommand => ({ type: 'ans.exec', payload: { dir, line } });

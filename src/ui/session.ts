@@ -8,6 +8,8 @@ export interface Line { text: string; kind: 'out' | 'err' | 'in' | 'info' }
 const HELP = `Commandes : ls, cat, cd, pwd, rm, mkdir, echo, clear, edit <fichier>
 Outils : terraform init|validate|plan|apply|destroy|show|output|state|fmt|refresh
          ansible <hôtes> -m <module> -a "<args>", ansible-playbook <fichier>, ansible-inventory --list
+Machines (à la main) : guest <machine> write <chemin> <texte> | cat | stop|start <service> | status
+Git : git init|add|commit -m|status|log
 Scripts : bash <fichier>   (exécute les lignes « cloud create … » d'un fichier)
 Console du fournisseur (modifier « à la main ») : cloud list | cloud create <type> clé=valeur … | cloud vms | cloud set <id> <attribut> <valeur> | cloud delete <type> <id>
 Dans l'éditeur : Ctrl+S enregistre.`;
@@ -23,7 +25,18 @@ export class Session {
 
   /** Exécute une ligne ; renvoie les lignes à afficher. */
   exec(input: string): Line[] {
-    const line = input.trim();
+    let line = input.trim();
+    // redirection « > fichier » ou « >> fichier » (hors guillemets simples)
+    const redir = !this.pendingAnswer ? /^(.*?[^>])\s*(>>?)\s*([^\s>]+)\s*$/.exec(line) : null;
+    if (redir && !/["'].*>.*["']\s*$/.test(line)) {
+      line = redir[1]!.trim();
+      const lines = this.exec(line);
+      const text = lines.filter(l => l.kind !== 'err').map(l => l.text).join('\n');
+      const path = join(this.cwd, redir[3]!);
+      const prev = redir[2] === '>>' ? (readFile(this.lab.getState(), path) ?? '') : '';
+      this.lab.dispatch('fs.write', { path, content: prev + (text ? `${text}\n` : '') });
+      return lines.filter(l => l.kind === 'err');
+    }
     if (this.pendingAnswer) {
       const p = this.pendingAnswer; this.pendingAnswer = null;
       return this.run(p.line, line);
@@ -80,6 +93,8 @@ export class Session {
         this.openRequest = join(this.cwd, w[1]); return out(`Ouverture de ${w[1]} dans l'éditeur.`, 'info');
       }
       case 'cloud': return this.cloud(w.slice(1));
+      case 'git': { const r = this.lab.dispatch('git.exec', { dir: this.cwd, args: w.slice(1) }); return out(r.output ?? '', r.ok ? 'out' : 'err'); }
+      case 'guest': return this.guest(w.slice(1));
       case 'bash': case 'sh': {
         if (!w[1]) return out('usage: bash <fichier>', 'err');
         const c = readFile(st, join(this.cwd, w[1]));
@@ -92,6 +107,22 @@ export class Session {
         return res;
       }
       default: return out(`${cmd}: command not found`, 'err');
+    }
+  }
+
+  /** Agir « à la main » dans une machine : guest <machine> write|cat|stop|start|status … */
+  private guest(a: string[]): Line[] {
+    const out = (s: string, kind: Line['kind'] = 'out'): Line[] => s.split('\n').map(text => ({ text, kind }));
+    const st = this.lab.getState();
+    const vm = Object.values(st.cloud['cloudpeda_vm'] ?? {}).find(v => v['name'] === a[0]);
+    if (!vm || !a[1]) return out('usage : guest <machine> write <chemin> <texte…> | cat <chemin> | stop <service> | start <service> | status', 'err');
+    const g = vm['guest'] as import('../state').Guest;
+    switch (a[1]) {
+      case 'cat': { const f = g.files[a[2] ?? '']; return f && !f.dir ? out(f.content.replace(/\n$/, '')) : out(`cat: ${a[2] ?? ''}: No such file or directory`, 'err'); }
+      case 'write': { if (!a[2]) return out('usage : guest <machine> write <chemin> <texte…>', 'err'); this.lab.dispatch('guest.write', { vm: vm['id'], path: a[2], content: `${a.slice(3).join(' ')}\n` }); return []; }
+      case 'stop': case 'start': { try { this.lab.dispatch('guest.service', { vm: vm['id'], name: a[2] ?? '', active: a[1] === 'start' }); return []; } catch (e) { return out(e instanceof Error ? e.message : String(e), 'err'); } }
+      case 'status': return out([`paquets : ${g.packages.join(', ')}`, ...Object.entries(g.services).map(([n, s]) => `service ${n} : ${s.active ? 'actif' : 'arrêté'}${s.enabled ? ', activé au démarrage' : ''}`)].join('\n'));
+      default: return out(`guest: action inconnue : ${a[1]}`, 'err');
     }
   }
 

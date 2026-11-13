@@ -2,6 +2,8 @@
 import { readFile } from '../shell/vfs';
 import type { Guest, State } from '../state';
 import { runTerraform } from '../terraform/commands';
+import { runAnsible } from '../ansible/commands';
+import { lastCommitFiles } from '../shell/git';
 import type { Objective } from './types';
 
 const vms = (st: Readonly<State>): Record<string, any>[] => Object.values(st.cloud['cloudpeda_vm'] ?? {});
@@ -50,3 +52,18 @@ export const ruleOn = (id: string, label: string, vm: string, port: number): Obj
 export const after = (id: string, label: string, previous: string, test: (st: Readonly<State>) => boolean): Objective => ({
   id, label, check: (st, done) => !!done?.has(previous) && test(st),
 });
+
+/** Le playbook, rejoué deux fois sur une copie de l'état, ne change plus rien au second passage et n'échoue pas. */
+export const playbookIdempotent = (id: string, label: string, dir: string, playbook = 'site.yml', inventory = 'inventory.ini'): Objective => ({
+  id, label,
+  check: st => {
+    const copy = structuredClone(st) as State;
+    const call = { dir, cmd: 'ansible-playbook', args: ['-i', inventory, playbook] };
+    const first = runAnsible(copy, call); if (!first.ok) return false;
+    const second = runAnsible(copy, call);
+    return second.ok && !/changed=[1-9]/.test(second.output ?? '') && /changed=0/.test(second.output ?? '');
+  },
+});
+
+/** Contenu du dernier commit (chemin → contenu), ou undefined s'il n'y en a pas. */
+export const committed = (st: Readonly<State>, root: string): Record<string, string> | undefined => lastCommitFiles(st, root);

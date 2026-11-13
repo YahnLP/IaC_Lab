@@ -1,5 +1,6 @@
 /** Assemble le laboratoire : état, commandes et journal. */
 import { CommandRefused, Store, type Result } from './core/store';
+import { runGit } from './shell/git';
 import { removeFile, writeFile } from './shell/vfs';
 import { splitWords } from './shell/words';
 import { newState, type State } from './state';
@@ -28,6 +29,8 @@ export function createLab(): Lab {
     if (!['ansible', 'ansible-playbook', 'ansible-inventory'].includes(w[0] ?? '')) return { ok: false, output: `${w[0] ?? ''}: command not found`, code: 127 };
     return runAnsible(st, { dir: p.dir, cmd: w[0]!, args: w.slice(1) });
   });
+
+  lab.register('git.exec', (st, p: { dir: string; args: string[] }): Result => runGit(st, p.dir, p.args));
 
   /** Console du fournisseur : actions faites « à la main », hors de tout code. */
   const guard = <T>(fn: () => T): T => { try { return fn(); } catch (e) { if (e instanceof ProviderError) throw new CommandRefused(e.message); throw e; } };

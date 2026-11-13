@@ -90,3 +90,43 @@ describe('moteur', () => {
     expect(() => importSave('{"app":"autre"}')).toThrow(/sauvegarde IaC Lab/);
   });
 });
+
+describe('étapes 3 et 4 : scénarios', () => {
+  it('3.1 : une faute dans l’inventaire donne UNREACHABLE', () => {
+    const tp = tpById('3.1')!; const { lab } = solve(tp); const s = new Session(lab, tp.dir);
+    lab.dispatch('fs.write', { path: 'config/inventory.ini', content: '[web]\ncassie\n' });
+    expect(s.exec('ansible web -m ping -i inventory.ini').map(l => l.text).join('\n')).toContain('UNREACHABLE');
+  });
+  it('3.2 : second passage à changed=0', () => { expect(solve(tpById('3.2')!).log[1]).toMatch(/changed=0/); });
+  it('3.3 : le handler ne s’exécute qu’au premier passage', () => {
+    const { log } = solve(tpById('3.3')!);
+    expect(log[0]).toContain('RUNNING HANDLER'); expect(log[1]).not.toContain('RUNNING HANDLER');
+  });
+  it('3.4 : --check --diff détecte sans corriger', () => {
+    const tp = tpById('3.4')!; const lab = startTp(tp); const s = new Session(lab, tp.dir);
+    s.exec('guest caisse write /var/www/html/index.html Page bidouillee');
+    const r = s.exec('ansible-playbook -i inventory.ini site.yml --check --diff').map(l => l.text).join('\n');
+    expect(r).toContain('+<h1>Brasserie du Port - caisse</h1>'); expect(r).toMatch(/changed=\d/);
+    expect(s.exec('guest caisse cat /var/www/html/index.html')[0]!.text).toBe('Page bidouillee');
+  });
+  it('3.5 : command est toujours changed et --check la saute', () => {
+    const { log } = solve(tpById('3.5')!);
+    expect(log[0]).toMatch(/changed=1/); expect(log[1]).toMatch(/changed=1/); expect(log[2]).toContain('skipping');
+  });
+  it('4.1 : l’inventaire vient de la sortie Terraform', () => {
+    const tp = tpById('4.1')!; const { lab } = solve(tp);
+    expect(lab.getState().files['projet/inventory.ini']).toContain('[bdd]\nstock ansible_host=');
+  });
+  it('4.2 : git ignore l’état et les secrets', () => {
+    const tp = tpById('4.2')!; const { lab, log } = solve(tp);
+    expect(log.join('\n')).toContain('cloudpeda_firewall_rule.https'); // le plan annonce la règle
+    const s = new Session(lab, tp.dir); expect(s.exec('git status').map(l => l.text).join('\n')).toContain('nothing to commit');
+  });
+  it('4.2 : sans .gitignore, l’état est commité (objectif non atteint)', () => {
+    const tp = tpById('4.2')!; const lab = startTp(tp); const s = new Session(lab, tp.dir); const p = newProgress();
+    s.exec('git init'); s.exec('git add .'); s.exec('git commit -m "tout"');
+    const r = checkTp(tp, lab.getState(), p);
+    expect(r.find(x => x.objective.id === 'commit')!.ok).toBe(true);
+    expect(r.find(x => x.objective.id === 'propre')!.ok).toBe(false);
+  });
+});
