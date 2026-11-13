@@ -47,3 +47,12 @@ M2 Ansible ; M3 interface ; M4 moteur de TP et vérificateur ; M5 à M8 contenu,
 - Machines atteintes par `ansible_host` (IP ou nom) ou par le nom de l'hôte ; sinon UNREACHABLE.
 - Simplifications : pas de rôles, `include`, `block/rescue`, vault ni facts détaillés ; en `--check`, `apt` ne crée pas les dossiers (comme en vrai, une tâche suivante peut échouer).
 - Commandes d'état « à la main » pour provoquer une dérive : `guest.write`, `guest.service`, `guest.package`.
+
+## Jalon M3 : interface
+
+- `index.html` + `src/main.ts` : mise en page 4 zones (fichiers, éditeur, terminal, vue), sauvegarde automatique du journal dans `localStorage` (try/catch), bouton Réinitialiser.
+- `src/ui/session.ts` : terminal (cd, ls, cat, rm, mkdir, edit, `cloud …`, passerelle terraform/ansible, invite « Enter a value: » pour apply/destroy). Pur, testé.
+- `src/ui/model.ts` : modèle de la vue SVG à 3 colonnes (code → état → monde réel) avec statuts synchronisé / à créer / orphelin / hors Terraform. Pur, testé.
+- `src/ui/app.ts` : DOM et SVG (texte inséré uniquement par `textContent`).
+- `src/ui/seed.ts` : projet de départ provisoire (les parcours de la Brasserie arrivent en M5-M6).
+- Vérifié dans Chromium (Playwright) : init, apply, playbook, aucune erreur console. Accessibilité (axe-core, clavier complet) : jalon M8.
