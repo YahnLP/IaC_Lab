@@ -1,8 +1,9 @@
 /** Interface : arborescence, éditeur, terminal et vue SVG. Tout le texte est inséré via textContent. */
 import type { Lab } from '../engine';
 import { CATALOG, tpById } from '../tp/catalog';
-import { answerQuestion, checkTp, exportSave, importSave, isComplete, newProgress, nextHint, startTp, type Progress } from '../tp/engine';
+import { SELF_LEVELS, answerQuestion, checkTp, exportSave, importSave, isComplete, nextHint, rateSelf, startTp, type Progress } from '../tp/engine';
 import type { Tp } from '../tp/types';
+import { buildReport, reportHtml, reportJson } from '../tp/report';
 import { buildView, shortType, type Status, type ViewItem } from './model';
 import { Session } from './session';
 
@@ -89,20 +90,33 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
       ...(tp.myth ? [para(`Idée reçue : « ${tp.myth} »`, 'mut')] : []),
       ...tp.brief.split('\n\n').map(t => para(t)));
     const res = checkTp(tp, lab.getState(), progress);
-    $('objs').replaceChildren(...res.filter(r => !r.objective.id.startsWith('q:')).map(r => { const li = document.createElement('li'); li.textContent = `${r.ok ? '✔' : '○'} ${r.objective.label}`; li.className = `${r.ok ? 'ok' : ''} ${r.sticky ? 'sticky' : ''}`.trim(); return li; }));
+    $('objs').replaceChildren(...res.filter(r => !r.objective.id.startsWith('q:')).map(r => { const li = document.createElement('li'); li.textContent = `${progress.exam ? '•' : r.ok ? '✔' : '○'} ${r.objective.label}`; li.className = progress.exam ? '' : `${r.ok ? 'ok' : ''} ${r.sticky ? 'sticky' : ''}`.trim(); return li; }));
     const qbox = $('quest'); qbox.replaceChildren();
     for (const q of tp.questions ?? []) {
       const field = document.createElement('fieldset'); const lg = document.createElement('legend');
-      const okQ = res.find(r => r.objective.id === `q:${q.id}`)?.ok ?? false; lg.textContent = `${okQ ? '✔ ' : ''}${q.prompt}`; field.appendChild(lg);
+      const okQ = res.find(r => r.objective.id === `q:${q.id}`)?.ok ?? false; lg.textContent = `${okQ && !progress.exam ? '✔ ' : ''}${q.prompt}`; field.appendChild(lg);
       const fb = document.createElement('div'); fb.setAttribute('role', 'status');
       q.choices.forEach((c, i) => {
         const b = document.createElement('button'); b.type = 'button'; b.textContent = c;
-        b.addEventListener('click', () => { const r = answerQuestion(tp, progress, q.id, i); persist(); renderMission(); const again = $('quest').querySelector(`[data-q="${q.id}"]`); if (again) again.textContent = `${r.ok ? 'Exact. ' : 'Pas tout à fait. '}${r.ok ? r.explain : 'Relisez la consigne et réessayez.'}`; });
+        b.addEventListener('click', () => { const r = answerQuestion(tp, progress, q.id, i); persist(); renderMission(); const again = $('quest').querySelector(`[data-q="${q.id}"]`); if (again) again.textContent = progress.exam ? 'Réponse enregistrée.' : `${r.ok ? 'Exact. ' : 'Pas tout à fait. '}${r.ok ? r.explain : 'Relisez la consigne et réessayez.'}`; });
         field.appendChild(b);
       });
       fb.dataset['q'] = q.id; field.appendChild(fb); qbox.appendChild(field);
     }
-    if (isComplete(res)) $('hint').textContent = `Mission accomplie. ${tp.bilan}`;
+    const sbox = $('self'); sbox.replaceChildren();
+    for (const it of tp.selfEval ?? []) {
+      const f = document.createElement('fieldset'); const lg = document.createElement('legend'); lg.textContent = it.text; f.appendChild(lg);
+      SELF_LEVELS.forEach((lv, i) => {
+        const lab2 = document.createElement('label'); const r = document.createElement('input'); r.type = 'radio'; r.name = `self-${it.id}`; r.checked = progress.self[it.id] === i;
+        r.addEventListener('change', () => { rateSelf(tp, progress, it.id, i); persist(); renderMission(); });
+        lab2.append(r, ` ${lv}`); f.appendChild(lab2);
+      });
+      sbox.appendChild(f);
+    }
+    $<HTMLButtonElement>('hintbtn').disabled = progress.exam;
+    $<HTMLInputElement>('exam').checked = progress.exam;
+    if (isComplete(res) && !progress.exam) $('hint').textContent = `Mission accomplie. ${tp.bilan}`;
+    else if (isComplete(res)) $('hint').textContent = 'Toutes les consignes sont traitées. Le détail est dans le compte rendu.';
   }
   function load(next: { tp: string; lab: Lab; progress: Progress }): void {
     lab = next.lab; progress = next.progress; tp = tpById(next.tp) ?? CATALOG[0]!; sess = new Session(lab, tp.dir);
@@ -136,7 +150,14 @@ export function startApp(init: { tp: string; lab: Lab; progress: Progress }, hoo
   $('save').addEventListener('click', save);
   $('tpsel').addEventListener('change', () => { const t = tpById($<HTMLSelectElement>('tpsel').value); if (t) load({ tp: t.id, lab: startTp(t), progress }); });
   $('restart').addEventListener('click', () => { if (confirm('Recommencer ce TP ? Votre travail dans ce TP sera effacé.')) { delete progress.done[tp.id]; load({ tp: tp.id, lab: startTp(tp), progress }); } });
-  $('hintbtn').addEventListener('click', () => { const h = nextHint(tp, progress); $('hint').textContent = h ?? 'Plus d’indice : demandez à votre enseignant.'; persist(); });
+  $('hintbtn').addEventListener('click', () => { if (progress.exam) return; const h = nextHint(tp, progress); $('hint').textContent = h ?? 'Plus d’indice : demandez à votre enseignant.'; persist(); });
+  $('exam').addEventListener('change', () => { progress.exam = $<HTMLInputElement>('exam').checked; $('hint').textContent = progress.exam ? 'Mode examen : pas d’indices, pas de retour sur les réponses.' : ''; persist(); renderMission(); });
+  const report = () => buildReport(CATALOG, progress, { tp: tp.id, state: lab.getState() }, { student: $<HTMLInputElement>('repname').value.trim(), group: $<HTMLInputElement>('repgroup').value.trim(), date: new Date().toLocaleDateString('fr-FR') });
+  const download = (name: string, text: string, type: string): void => { const url = URL.createObjectURL(new Blob([text], { type })); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url); };
+  $('report').addEventListener('click', () => $<HTMLDialogElement>('repdlg').showModal());
+  $('rephtml').addEventListener('click', () => download('iaclab-compte-rendu.html', reportHtml(report()), 'text/html'));
+  $('repjson').addEventListener('click', () => download('iaclab-compte-rendu.json', reportJson(report()), 'application/json'));
+  $('repopen').addEventListener('click', () => { const url = URL.createObjectURL(new Blob([reportHtml(report())], { type: 'text/html' })); window.open(url, '_blank'); });
   $('export').addEventListener('click', () => {
     const url = URL.createObjectURL(new Blob([exportSave(tp.id, lab, progress)], { type: 'application/json' }));
     const a = document.createElement('a'); a.href = url; a.download = `iaclab-${tp.id}.json`; a.click(); URL.revokeObjectURL(url);

@@ -4,7 +4,8 @@ import { STAGE1 } from './stage1';
 import { STAGE2 } from './stage2';
 import { STAGE3 } from './stage3';
 import { STAGE4 } from './stage4';
+import { STAGE5 } from './stage5';
 import type { Tp } from './types';
 
-export const CATALOG: Tp[] = [...STAGE0, ...STAGE1, ...STAGE2, ...STAGE3, ...STAGE4];
+export const CATALOG: Tp[] = [...STAGE0, ...STAGE1, ...STAGE2, ...STAGE3, ...STAGE4, ...STAGE5];
 export const tpById = (id: string): Tp | undefined => CATALOG.find(t => t.id === id);

@@ -82,3 +82,11 @@ M2 Ansible ; M3 interface ; M4 moteur de TP et vérificateur ; M5 à M8 contenu,
 - `src/shell/git.ts` : Git simulé (instantanés dans `.git/repo.json`, `.gitignore` simple : nom exact, `*.ext`, `dossier/`). Les vérificateurs lisent le dernier commit.
 - Vérificateur `playbookIdempotent` : rejoue le playbook deux fois sur une copie de l'état et exige `changed=0` au second passage.
 - Simplifications : pas de rôles, pas de branches Git ni de dépôt distant, `git add` instantané du contenu.
+
+## Jalon M7 : bilan, compte rendu, mode examen
+
+- `src/tp/stage5.ts` : 5.1 quiz de 12 questions (étapes 0 à 4), 5.2 « quel outil pour quoi ? » (8 besoins : Terraform / Ansible / les deux à la suite), 5.3 auto-évaluation (10 énoncés, 4 niveaux).
+- `src/tp/engine.ts` : `rateSelf` (auto-évaluation), `progress.self` et `progress.exam`. En examen, seule la dernière réponse à une question compte.
+- Mode examen (case à cocher) : indices désactivés, pas de coches sur les objectifs, pas d'explication ni de bonne/mauvaise réponse affichée, pas de phrase de bilan. Le détail n'apparaît que dans le compte rendu.
+- `src/tp/report.ts` : compte rendu (objectifs atteints par TP, indices, essais aux questions, commandes, auto-évaluation) en JSON ou en HTML imprimable (texte échappé). Nom, classe et date saisis dans l'interface (la date n'entre jamais dans le moteur, qui reste déterministe).
+- Le pourcentage du compte rendu est un taux d'objectifs atteints, pas une note : aucune grille de notation n'est inventée.

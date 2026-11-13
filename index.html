@@ -10,7 +10,7 @@
 body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,sans-serif;height:100vh;display:flex;flex-direction:column}
 header{display:flex;gap:12px;align-items:center;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
 header h1{font-size:16px;margin:0}header span{color:var(--mut);font-size:12px}
-header button{margin-left:auto}
+#examlbl{margin-left:auto;font-size:13px}dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:8px;max-width:420px}dialog input{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:4px;padding:3px 6px}.dlgbtns{display:flex;gap:6px;flex-wrap:wrap}#self fieldset{border:1px solid var(--line);border-radius:6px;margin:4px 0;padding:4px 6px}#self legend{font-size:12px}#self label{display:inline-block;margin-right:6px;font-size:12px}
 button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer;font:inherit}
 button:hover,button:focus-visible{border-color:var(--acc)}
 :focus-visible{outline:2px solid var(--acc);outline-offset:1px}
@@ -45,11 +45,16 @@ svg text{font:12px system-ui,sans-serif;fill:var(--txt)}svg .mut{fill:var(--mut)
 </head>
 <body>
 <header><h1>IaC Lab</h1><span>Brasserie du Port — simulateur : aucun vrai outil n'est exécuté</span>
-<button id="reset" type="button">Réinitialiser</button></header>
+<label id="examlbl"><input type="checkbox" id="exam"> Mode examen (sans aide)</label>
+<button id="report" type="button">Compte rendu</button><button id="reset" type="button">Réinitialiser</button></header>
+<dialog id="repdlg" aria-labelledby="reptitle"><form method="dialog"><h2 id="reptitle">Compte rendu</h2>
+<p><label>Nom <input id="repname" autocomplete="name"></label></p><p><label>Classe <input id="repgroup"></label></p>
+<p class="mut">Le compte rendu récapitule les objectifs atteints, les indices demandés et l’auto-évaluation.</p>
+<div class="dlgbtns"><button id="rephtml" type="button">Télécharger (HTML)</button><button id="repjson" type="button">Télécharger (JSON)</button><button id="repopen" type="button">Ouvrir pour imprimer</button><button value="close">Fermer</button></div></form></dialog>
 <main>
 <section id="files" aria-label="Mission et fichiers"><h2>Mission</h2>
 <div id="mission"><label for="tpsel" class="mut">TP</label><select id="tpsel"></select><div id="brief"></div>
-<ul id="objs" aria-label="Objectifs"></ul><div id="quest"></div><div id="hint" role="status"></div>
+<ul id="objs" aria-label="Objectifs"></ul><div id="quest"></div><div id="self"></div><div id="hint" role="status"></div>
 <div id="mbtns"><button id="hintbtn" type="button">Indice</button><button id="restart" type="button">Recommencer</button><button id="export" type="button">Exporter</button><button id="import" type="button">Importer</button><input id="file" type="file" accept="application/json,.json" hidden></div></div>
 <h2>Fichiers</h2><ul id="tree"></ul></section>
 <section id="editor" aria-label="Éditeur"><h2 id="edtitle">Éditeur</h2>

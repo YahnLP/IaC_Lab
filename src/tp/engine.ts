@@ -12,8 +12,12 @@ export interface Progress {
   commands: Record<string, number>;
   /** Réponses données aux questions : TP → question → numéro de choix (dernier essai) et nombre d'essais. */
   answers: Record<string, Record<string, { choice: number; tries: number }>>;
+  /** Auto-évaluation : énoncé → niveau de 0 (pas encore) à 3 (je peux l'expliquer). */
+  self: Record<string, number>;
+  /** Mode examen : sans indices ni retour sur les réponses. */
+  exam: boolean;
 }
-export const newProgress = (): Progress => ({ done: {}, hints: {}, commands: {}, answers: {} });
+export const newProgress = (): Progress => ({ done: {}, hints: {}, commands: {}, answers: {}, self: {}, exam: false });
 
 /** Crée un laboratoire neuf prêt pour le TP : fichiers de départ puis préparation du monde. */
 export function startTp(tp: Tp): Lab {
@@ -34,14 +38,28 @@ export function answerQuestion(tp: Tp, progress: Progress, qid: string, choice: 
   const rec = (progress.answers[tp.id] ??= {});
   rec[qid] = { choice, tries: (rec[qid]?.tries ?? 0) + 1 };
   const ok = choice === q.correct;
-  if (ok) { const d = new Set(progress.done[tp.id] ?? []); d.add(`q:${q.id}`); progress.done[tp.id] = [...d]; }
+  const d = new Set(progress.done[tp.id] ?? []);
+  if (ok) d.add(`q:${q.id}`);
+  else if (progress.exam) d.delete(`q:${q.id}`); // en examen, seule la dernière réponse compte
+  progress.done[tp.id] = [...d];
   return { ok, explain: q.explain };
 }
+
+export const SELF_LEVELS = ['pas encore', 'avec de l’aide', 'seul·e', 'je peux l’expliquer'] as const;
+
+/** Enregistre un niveau d'auto-évaluation ; l'objectif « auto-évaluation complétée » se valide quand tout est renseigné. */
+export function rateSelf(tp: Tp, progress: Progress, itemId: string, level: number): void {
+  if (!tp.selfEval?.some(i => i.id === itemId)) throw new Error(`énoncé inconnu : ${itemId}`);
+  if (!Number.isInteger(level) || level < 0 || level > 3) throw new Error('niveau entre 0 et 3');
+  progress.self[itemId] = level;
+  if (tp.selfEval.every(i => progress.self[i.id] !== undefined)) { const d = new Set(progress.done[tp.id] ?? []); d.add('self'); progress.done[tp.id] = [...d]; }
+}
+const selfObjectives = (tp: Tp): Objective[] => tp.selfEval ? [{ id: 'self', label: 'Auto-évaluation complétée', check: () => false }] : [];
 
 /** Vérifie les objectifs ; un objectif déjà validé le reste. Met `progress` à jour. */
 export function checkTp(tp: Tp, st: Readonly<State>, progress: Progress): CheckResult[] {
   const done = new Set(progress.done[tp.id] ?? []);
-  const res = [...tp.objectives, ...questionObjectives(tp.questions)].map(o => {
+  const res = [...tp.objectives, ...questionObjectives(tp.questions), ...selfObjectives(tp)].map(o => {
     const live = o.check(st, done);
     if (live) done.add(o.id);
     return { objective: o, ok: live || done.has(o.id), sticky: !live && done.has(o.id) };
@@ -76,5 +94,5 @@ export function importSave(text: string): { tp: string; lab: Lab; progress: Prog
   const lab = createLab();
   lab.restore(f.journal);
   const p = f.progress ?? newProgress();
-  return { tp: f.tp, lab, progress: { done: p.done ?? {}, hints: p.hints ?? {}, commands: p.commands ?? {}, answers: p.answers ?? {} } };
+  return { tp: f.tp, lab, progress: { done: p.done ?? {}, hints: p.hints ?? {}, commands: p.commands ?? {}, answers: p.answers ?? {}, self: p.self ?? {}, exam: p.exam === true } };
 }

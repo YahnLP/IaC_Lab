@@ -11,6 +11,8 @@ export interface Objective {
 
 export interface SetupCommand { type: string; payload: Record<string, unknown> }
 
+export interface SelfItem { id: string; text: string }
+
 export interface Question { id: string; prompt: string; choices: string[]; correct: number; explain: string }
 
 /** Une étape de la solution de référence, rejouée par les tests (chaque TP doit pouvoir être résolu à 100 %). */
@@ -35,6 +37,8 @@ export interface Tp {
   /** Phrase de bilan affichée à la réussite. */
   bilan: string;
   questions?: Question[];
+  /** Auto-évaluation : une échelle de 0 à 3 par énoncé. */
+  selfEval?: SelfItem[];
   solution: SolutionStep[];
   /** Texte de la mission, en prose courte (paragraphes séparés par une ligne vide). */
   brief: string;

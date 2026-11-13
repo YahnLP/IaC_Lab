@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG, tpById } from '../../src/tp/catalog';
-import { answerQuestion, checkTp, exportSave, importSave, isComplete, newProgress, nextHint, startTp } from '../../src/tp/engine';
+import { SELF_LEVELS, answerQuestion, checkTp, rateSelf, exportSave, importSave, isComplete, newProgress, nextHint, startTp } from '../../src/tp/engine';
 import type { Tp } from '../../src/tp/types';
 import { Session } from '../../src/ui/session';
 
@@ -14,6 +14,7 @@ function solve(tp: Tp) {
     else answerQuestion(tp, p, step.answer, tp.questions!.find(q => q.id === step.answer)!.correct);
     checkTp(tp, lab.getState(), p);
   }
+  for (const it of tp.selfEval ?? []) rateSelf(tp, p, it.id, 2);
   return { lab, s, p, log };
 }
 
@@ -30,7 +31,7 @@ describe.each(CATALOG.map(t => [t.id, t] as const))('TP %s', (_id, tp) => {
   });
   it('les textes sont complets', () => {
     expect(tp.intention.length).toBeGreaterThan(20); expect(tp.bilan.length).toBeGreaterThan(20);
-    expect(tp.hints.length).toBeGreaterThan(0); expect(tp.skills.length).toBeGreaterThan(0);
+    if (!tp.selfEval) { expect(tp.hints.length).toBeGreaterThan(0); expect(tp.skills.length).toBeGreaterThan(0); }
     for (const q of tp.questions ?? []) { expect(q.choices[q.correct]).toBeDefined(); expect(q.choices.length).toBeGreaterThanOrEqual(3); }
   });
   it('la vérification ne modifie pas l’état', () => {
@@ -128,5 +129,43 @@ describe('étapes 3 et 4 : scénarios', () => {
     const r = checkTp(tp, lab.getState(), p);
     expect(r.find(x => x.objective.id === 'commit')!.ok).toBe(true);
     expect(r.find(x => x.objective.id === 'propre')!.ok).toBe(false);
+  });
+});
+
+import { buildReport, reportHtml, reportJson } from '../../src/tp/report';
+
+describe('bilan, examen, compte rendu', () => {
+  it('auto-évaluation : complète seulement quand tout est renseigné', () => {
+    const tp = tpById('5.3')!; const p = newProgress();
+    expect(() => rateSelf(tp, p, 'zzz', 1)).toThrow(); expect(() => rateSelf(tp, p, 's1', 7)).toThrow();
+    for (const i of tp.selfEval!.slice(0, 9)) rateSelf(tp, p, i.id, 1);
+    expect(isComplete(checkTp(tp, startTp(tp).getState(), p))).toBe(false);
+    rateSelf(tp, p, 's10', 3);
+    expect(isComplete(checkTp(tp, startTp(tp).getState(), p))).toBe(true);
+    expect(SELF_LEVELS[3]).toContain('expliquer');
+  });
+  it('examen : seule la dernière réponse compte', () => {
+    const tp = tpById('TD1')!; const p = newProgress(); p.exam = true;
+    answerQuestion(tp, p, 'a', 0); expect(p.done['TD1']).toContain('q:a');
+    answerQuestion(tp, p, 'a', 2); expect(p.done['TD1']).not.toContain('q:a');
+    p.exam = false; answerQuestion(tp, p, 'a', 0); answerQuestion(tp, p, 'a', 2); expect(p.done['TD1']).toContain('q:a');
+  });
+  it('compte rendu : pourcentage, lignes, échappement HTML, JSON', () => {
+    const p = newProgress(); const tp = tpById('TD1')!;
+    for (const q of tp.questions!) answerQuestion(tp, p, q.id, q.correct);
+    p.hints['1.1'] = 2; p.self['s1'] = 3;
+    const r = buildReport(CATALOG, p, null, { student: '<b>Léa</b>', group: 'SIO1', date: '2026-11-13' });
+    expect(r.rows.find(x => x.id === 'TD1')).toMatchObject({ done: 5, total: 5, complete: true });
+    expect(r.rows.find(x => x.id === '1.1')!.hints).toBe(2);
+    expect(r.percent).toBeGreaterThan(0); expect(r.percent).toBeLessThan(100);
+    const html = reportHtml(r);
+    expect(html).toContain('&lt;b&gt;Léa&lt;/b&gt;'); expect(html).not.toContain('<b>Léa');
+    expect(JSON.parse(reportJson(r)).app).toBe('iaclab-report');
+  });
+  it('compte rendu : un parcours complet donne 100 %', () => {
+    const p = newProgress(); const lab = startTp(CATALOG[0]!);
+    for (const tp of CATALOG) { const s = solve(tp); Object.assign(p.done, { [tp.id]: s.p.done[tp.id] ?? [] }); Object.assign(p.self, s.p.self); }
+    expect(buildReport(CATALOG, p, null, { student: 'x', group: 'y', date: 'z' }).percent).toBe(100);
+    void lab;
   });
 });
